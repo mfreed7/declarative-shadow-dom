@@ -33,11 +33,10 @@ Declarative Shadow DOM is an often-requested feature from developers. For exampl
 
 The proposed solution re-uses the existing `<template>` element with a new “shadowroot” attribute to declare the shadow content and trigger the attachment of a shadow root:
 
-
 ```html
 <host-element>
     <template shadowroot="open">
-        <style>... shadow styles ...</style>
+        <style>shadow styles</style>
         <h2>Shadow Content</h2>
         <slot></slot>
     </template>
@@ -69,7 +68,7 @@ With the behavior and example code above, the resulting DOM tree will be:
 ```html
 <host-element>
   #shadow-root (open)
-    <style>... shadow styles ...</style>
+    <style>shadow styles</style>
     <h2>Shadow Content</h2>
     <slot>
         ↳ <h2> reveal
@@ -85,7 +84,7 @@ For comparison, the above code snippet and behavior results (under this proposal
 ```html
 <host-element>
     <template>
-        <style>... shadow styles ...</style>
+        <style>shadow styles</style>
         <h2>Shadow Content</h2>
         <slot></slot>
     </template>
@@ -389,7 +388,7 @@ The above approach can be generalized into a reusable polyfill library, so that 
 *   It is legal to nest a `<template shadowroot>` inside a “normal” `<template>`. In this case, the shadow root attachment [behavior](#behavior) occurs only when the “normal” template contents are cloned into the document, and not while parsing the (non-declarative shadow root) `<template>`.
 *   The most straightforward way to share stylesheets across similar components would be to embed a `<link rel=stylesheet>` within the declarative shadow root:
 
-    ```html
+ ```html
 <host-element>
     <template shadowroot=open>
         <link rel=stylesheet href="component_styles.css">
@@ -398,7 +397,8 @@ The above approach can be generalized into a reusable polyfill library, so that 
     <h2>Light content</h2>
 </host-element>
 ```
-  With the snippet above, the browser will load and parse the component_styles.css stylesheet once, and will re-use it for each occurrence of this component. This will, of course, suffer from performance problems if there are many different component CSS stylesheet links on the page.
+
+ With the snippet above, the browser will load and parse the component_styles.css stylesheet once, and will re-use it for each occurrence of this component. This will, of course, suffer from performance problems if there are many different component CSS stylesheet links on the page.
 
 *   Why not wait for, or link this to, [declarative custom elements](https://github.com/w3c/webcomponents/blob/gh-pages/proposals/Declarative-Custom-Elements-Strawman.md)? At first blush, it would seem that these two proposals go together. However, the primary motivating use case for declarative **Shadow DOM** is SSR and No-JS. Custom element definitions need javascript to function; therefore, this is a different use case/proposal and the two should not be tied together. Of course, they should be interoperable. Additionally, there are several use cases for declarative Shadow DOM that do not need custom elements at all: scoped styling, for example.
 *   Because `<template shadowroot>` is detected only upon parsing the opening tag, this declarative API cannot be used to create a shadowroot via JS. This is a **parser-only** API. E.g. doing this:
