@@ -9,8 +9,6 @@ Last Update: February 7, 2020
 
 Server-Side Rendering (SSR) is an important requirement for many sites, which **precludes** any Javascript execution for getting the first pixels on the screen. The rationale given for this no-JS constraint typically includes:
 
-
-
 *   Some search crawlers do not execute JS code before scraping page content, so for SEO, site owners require no-JS for indexable content.
 *   The primary goal of SSR is to get rendered content in front of the user as fast as possible, prior to enabling interactivity. Eliminating all JS (including small inline scripts) from SSR content is seen as a hard requirement.
 *   Some users run with no-JS settings/environments (e.g. users running JS script blockers), and supporting these users with at least basic content is required.
@@ -103,15 +101,32 @@ For comparison, the above code snippet and behavior results (under this proposal
 
 ## Serialization
 
-To provide maximum value, a DOM tree containing `#shadowroot`’s should also be able to be serialized using element.innerHTML. However, as the existing behavior is to **not** include the `#shadowroot` or any of its contents, simply adding this capability by default would pose a web compat problem. So each shadowroot needs to opt-in to being serialized, using a new `serializable` parameter on the `attachShadow()` function:
-
+To provide maximum value, a DOM tree containing `#shadowroot`’s should also be able to be serialized using element.innerHTML. However, as the existing behavior is to **not** include the `#shadowroot` or any of its contents, simply adding this capability by default would pose a web compat problem. So instead a new method will be added to Element called `getInnerHTML()`:
 
 ```javascript
-const shadowroot = node.attachShadow({mode: "open", serializable: true});
+const html = element.getInnerHTML({ includeShadowRoots: true });
 ```
 
+When called with `includeShadowRoots: true` on nodes that are Shadow Hosts, the returned HTML will includes a `<template shadowroot>` tag containing the shadowroot contents for each such node.
 
-With a shadowroot attached this way, when node is serialized (e.g. by retrieving node.outerHTML), it will return HTML that includes a `<template shadowroot>` tag containing the shadowroot contents. Additionally, when a `<template shadowroot>` tag is parsed into a #shadowroot, the “serialized” property will be automatically set to true for that shadow root.
+As this is a new method, there are no compat problems to worry about. This method also allows future serialization options to be added, such as a method for serializing adoptedStylesheets found inside shadow roots.
+
+
+## Additional arguments for attachShadow
+
+Because the `attachShadow()` function has one other argument, `delegates_focus`, and potentially more in the future, there needs to be a way to specify these parameters in the declarative case. This is important not only for developer flexibility, but also so that the `getInnerHTML()` has a way to completely represent all possible shadow roots found in content. To achieve this, additional attributes will be added to the `<template shadowroot>` tag:
+
+```html
+<template shadowroot="open" shadowroot_delegates_focus>
+```
+
+Here, the presence of the `shadowroot_delegates_focus` boolean attribute will cause the shadow root to be attached as if this imperative call were used:
+
+```javascript
+attachShadow({ mode = "open", delegatesFocus = true });
+````
+
+Additional parameters added to attachShadow in the future could naturally be added as attributes to the declarative `<template shadowroot>` form.
 
 
 ## Open Questions
@@ -128,6 +143,8 @@ host.innerHTML = '<template shadowroot=open></template>'
 
  I.e. should this be smart enough to attach a shadow root to the `<host>` element in this case? Or should this just result in a warning, and a “normal” template inside `<host>`?
 
+ My current thinking here is to just issue a warning and build a "normal" template. This seems to be the safest.
+
 2. What about a `<template>` containing a declarative shadow root? How should this work:
 
  ```html
@@ -142,12 +159,14 @@ host.innerHTML = '<template shadowroot=open></template>'
 
  In this case, should `<div id=host>` get a `#shadowroot` attached?
 
-3. What about the `delegates_focus` and `manual_slotting` parameters (and any future parameters) to `attachshadow()`? Should these just always default to false? Should there be an additional set of attributes on `<template>` to allow these to be customized? These parameters exist because of the need to alter their behavior in practice, which would indicate that they should be controllable via the declarative Shadow DOM also. Additionally, when serializing imperatively-created Shadow DOM, it would be otherwise impossible to capture the state of these parameters without a declarative equivalent.
+ My current thinking is to **not** attach a shadow root to `<div id=host>` in this case. That seems more difficult and error prone. 
 
 
-4. How should `adoptedStylesheets` on `#shadowroot` nodes be handled? On the parser side, should there be a way to "point to" a stylesheet that gets automatically adopted within the declarative `#shadowroot`? On the serialization side, should the existing contents of `adoptedStylesheets` be automatically serialized into new `<style>` nodes?
+3. How should `adoptedStylesheets` on `#shadowroot` nodes be handled? On the parser side, should there be a way to "point to" a stylesheet that gets automatically adopted within the declarative `#shadowroot`? On the serialization side, should the existing contents of `adoptedStylesheets` be automatically serialized into new `<style>` nodes? This could potentially be controlled by a new `convertAdoptedStylesheetsToInlineStyles` argument to `getInnerHTML()`.
 
-# What does declarative Shadow DOM mean?
+4. What about CSS custom states and AOM IDL attributes? These can't yet be represented declaratively, so there is no way to serialize them in `getInnerHTML()`. This means that custom elements must re-set these values upon construction. I don't see a better solution than this.
+
+# <a name="what-does-declarative-mean"></a> What does declarative Shadow DOM mean?
 
 It is important to note that a `#shadowroot` within a DOM tree is very special. It is not a node within the normal DOM tree. It is not part of `node.children` or `node.parent` for any node in the tree. It is, in this way, very unlike most other “normal” nodes. As such, one should expect the declarative HTML representation of `#shadowroot` to also have some special properties, and to behave differently from other HTML tags.
 
@@ -217,7 +236,7 @@ The current proposal removes the `<template shadowroot>` node after performing t
 1. The ergonomics would be a bit worse, as there would be a leftover copy of the template that would be encountered upon traversing the tree. This would lead to confusion among both developers (who would see both DocumentFragments in the devtools Elements pane) and scripts (which would now iterate over both sets of trees). Additionally, the leftover `<template>` node would always get slotted into the unnamed `<slot>`. 
 2. The memory consumption and overhead would be increased, due to the extra `<template shadowroot>` node left in the tree. Additionally, the slotting algorithm would also need to do extra work to slot in the leftover `<template shadowroot>` element into unnamed slots within the shadow root.
 
-The advantage of this approach would be that it avoids the abnormal behavior of a "self-removing" element. There are no current examples in the web platform of elements that remove themselves when parsed. (There is one historical example, `<isindex>`, but that has since been removed.) This advantage seems to be mostly about theoretical purity at this point. So unless there turns out to be negative web developer impact from introducing this new behavior, the above downsides would seem to outweigh this advantage. Also, arguably, the `<template shadowroot>` under this proposal is not “removed”, but rather transformed into its equivalent `#shadowroot` in the final DOM tree.
+The advantage of this approach would be that it avoids the abnormal behavior of a "self-removing" element. There are no current examples in the web platform of elements that remove themselves when parsed. (There is one historical example, `<isindex>`, but that has since been removed.) This advantage seems to be mostly about theoretical purity at this point. So unless there turns out to be negative web developer impact from introducing this new behavior, the above downsides would seem to outweigh this advantage. Also, arguably (see [this section](#what-does-declarative-mean)), the `<template shadowroot>` under this proposal is not “removed”, but rather transformed into its equivalent `#shadowroot` in the final DOM tree.
 
 ## Instead of inline contents, use an idref to an existing template
 
@@ -283,7 +302,7 @@ The first snippet replicates a proposed alternative to native declarative Shadow
     <script>
       var template = document.currentScript.previousElementSibling;
       var shadowRoot = template.parentElement.attachShadow({mode: "open"});
-      shadowRoot.appendChild(template.content.cloneNode(true));
+      shadowRoot.appendChild(template.content);
       // These two lines didn't affect performance appreciably:
       template.remove();
       document.currentScript.remove();
@@ -347,7 +366,7 @@ function supportsDeclarativeShadowDOM() {
 ```
 
 
-To polyfill declarative Shadow DOM, in the most typical use case of custom elements, something like this could be used:
+To polyfill declarative Shadow DOM, in the most typical use case of custom elements, something like this could be used (from @Rich-Harris [comment](https://github.com/whatwg/dom/issues/831#issuecomment-585372554)):
 
 
 ```html
@@ -358,21 +377,60 @@ To polyfill declarative Shadow DOM, in the most typical use case of custom eleme
     <span></span>
 </custom-element>
 <script>
-  customElements.define('custom-element', class extends HTMLElement{
-      constructor(){
-        super();
-        if(!this.shadowRoot) {
-          const template = this.querySelector('template[shadowroot]');
-          this.attachShadow({mode: template.getAttribute('shadowroot')});
-          this.shadowRoot.innerHTML = template.innerHTML;
-        }
+  class Clock extends HTMLElement {
+    constructor() {
+      super();
+
+      // Detect whether we have SSR content already
+      if (this.shadowRoot) {
+        // declarative shadow root exists
+        this.hours = this.shadowRoot.querySelector('.hours');
+        this.minutes = this.shadowRoot.querySelector('.minutes');
+        this.seconds = this.shadowRoot.querySelector('.seconds');
+      } else {
+        // declarative shadow root doesn't exist
+        this.attachShadow({ mode: 'open', serializable: true });
+        this.hours = document.createElement('span');
+        this.hours.className = 'hours';
+        this.minutes = document.createElement('span');
+        this.minutes.className = 'minutes';
+        this.seconds = document.createElement('span');
+        this.seconds.className = 'seconds';
+
+        this.shadowRoot.append(
+          this.hours,
+          document.createTextNode(' : '),
+          this.minutes,
+          document.createTextNode(' : '),
+          this.seconds
+        );
+      }
     }
-});
+
+    connectedCallback() {
+      this.update();
+      this.interval = setInterval(() => {
+        this.update();
+      }, 1000);
+    }
+
+    disconnectedCallback() {
+      clearInterval(this.interval);
+    }
+
+    update() {
+      const d = new Date();
+      this.hours.textContent = pad(d.getHours());
+      this.minutes.textContent = pad(d.getMinutes());
+      this.seconds.textContent = pad(d.getSeconds());
+    }
+  }
+
+  customElements.define('custom-element', Clock);
 </script>
 ```
 
-
-The above approach can be generalized into a reusable polyfill library, so that you could call `polyfillDeclarativeShadowRoot(this)`.
+Note that in the above code, the only thing added to support SSR is the `if (this.shadowRoot)` block, which hooks up element references and event handlers. This code assumes that the SSR content always matches the hydrated content, as it does not include any code to diff the two. This proposal is for the declarative Shadow DOM primitive, and does not propose a particular way to handle SSR vs. CSR content matching.
 
 
 # Other Details & Questions
