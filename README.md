@@ -159,7 +159,7 @@ host.innerHTML = '<template shadowroot=open></template>'
 
  In this case, should `<div id=host>` get a `#shadowroot` attached?
 
- My current thinking is to **not** attach a shadow root to `<div id=host>` in this case. That seems more difficult and error prone. 
+ My current thinking is to **not** attach a shadow root to `<div id=host>` in this case. That seems more difficult and error prone.
 
 
 3. How should `adoptedStylesheets` on `#shadowroot` nodes be handled? On the parser side, should there be a way to "point to" a stylesheet that gets automatically adopted within the declarative `#shadowroot`? On the serialization side, should the existing contents of `adoptedStylesheets` be automatically serialized into new `<style>` nodes? This could potentially be controlled by a new `convertAdoptedStylesheetsToInlineStyles` argument to `getInnerHTML()`.
@@ -233,7 +233,7 @@ The current proposal removes the `<template shadowroot>` node after performing t
 
 
 
-1. The ergonomics would be a bit worse, as there would be a leftover copy of the template that would be encountered upon traversing the tree. This would lead to confusion among both developers (who would see both DocumentFragments in the devtools Elements pane) and scripts (which would now iterate over both sets of trees). Additionally, the leftover `<template>` node would always get slotted into the unnamed `<slot>`. 
+1. The ergonomics would be a bit worse, as there would be a leftover copy of the template that would be encountered upon traversing the tree. This would lead to confusion among both developers (who would see both DocumentFragments in the devtools Elements pane) and scripts (which would now iterate over both sets of trees). Additionally, the leftover `<template>` node would always get slotted into the unnamed `<slot>`.
 2. The memory consumption and overhead would be increased, due to the extra `<template shadowroot>` node left in the tree. Additionally, the slotting algorithm would also need to do extra work to slot in the leftover `<template shadowroot>` element into unnamed slots within the shadow root.
 
 The advantage of this approach would be that it avoids the abnormal behavior of a "self-removing" element. There are no current examples in the web platform of elements that remove themselves when parsed. (There is one historical example, `<isindex>`, but that has since been removed.) This advantage seems to be mostly about theoretical purity at this point. So unless there turns out to be negative web developer impact from introducing this new behavior, the above downsides would seem to outweigh this advantage. Also, arguably (see [this section](#what-does-declarative-mean)), the `<template shadowroot>` under this proposal is not “removed”, but rather transformed into its equivalent `#shadowroot` in the final DOM tree.
@@ -286,12 +286,30 @@ This approach might be perceived to be less confusing, since it avoids an HTML t
 
 # Performance
 
-As a very simple test, I naively implemented the proposed declarative shadow attachment algorithm, exactly as [written above](#behavior) with all operations occurring at the closing `</template>` tag. I tested this locally on the same Chromium build on a fairly high-powered Lenovo P920 workstation, giving it two different inputs, both loaded from local file:// URLs. Each input consisted of 10,000 copies of the same code snippet, one of which was a baseline and one which used declarative Shadow DOM - see below for descriptions of each type of snippet. Care was taken to eliminate forced style/layout, by wrapping the set of copies inside a `<div>` with `display:none` and `contain:strict`.
+As a very simple test, I naively implemented the proposed declarative shadow attachment algorithm, mostly as [written above](#behavior) with all operations occurring at the closing `</template>` tag. This has been built into Chrome as of version 82.0.4060.0, and must be tested with the `--enable-blink-features=DeclarativeShadowDOM` flag provided on the command line. I tested this locally on Chrome v82.0.4068.4 on Linux, on a fairly high-powered Lenovo P920 workstation. I used [tachometer](https://www.npmjs.com/package/tachometer) for all testing. I provided three different inputs, all loaded from local files. Each input consisted of 10,000 copies of the same code snippet, one of which used declarative Shadow DOM, and the other two as baselines. See below for descriptions of each type of snippet. Care was taken to eliminate forced style/layout, by wrapping the set of copies inside a `<div>` with `display:none` and `contain:strict`.
 
 
-## Baseline - script-based shadow root attachment
 
-The first snippet replicates a proposed alternative to native declarative Shadow DOM, which uses an inline script placed just after each `<template>` to attach the shadow root and clone contents into the root. For completeness, this snippet also removes the `<template>` element and the inline `<script>` node, so that the resulting tree is identical to the declarative output. I found that the results did not change appreciably if both the `<template>` and `<script>` were left in the document instead.
+## Template-based declarative Shadow DOM
+
+The declarative Shadow DOM snippet uses the `<template shadowroot>` element as described in this document:
+
+
+```html
+<div>
+    <template shadowroot=open>
+        <slot></slot>
+    </template>
+    <span>${copy_num}</span>
+</div>
+```
+
+
+## Baseline #1 - inline script-based shadow root attachment
+
+The first baseilne snippet replicates a proposed alternative to native declarative Shadow DOM, which uses an inline script placed just after each `<template>` to attach the shadow root and move the template contents into the root. For completeness, this snippet also removes the `<template>` element and the inline `<script>` node, so that the resulting tree is identical to the declarative output. I found that the results did not change appreciably if both the `<template>` and `<script>` were left in the document instead.
+
+This approach is the most straightforward replica of a declarative shadow dom solution - the shadow root is attached and populated immediately after it is parsed, so that content streaming is possible.
 
 
 ```html
@@ -300,58 +318,81 @@ The first snippet replicates a proposed alternative to native declarative Shadow
         <slot></slot>
     </template>
     <script>
-      var template = document.currentScript.previousElementSibling;
-      var shadowRoot = template.parentElement.attachShadow({mode: "open"});
-      shadowRoot.appendChild(template.content);
-      // These two lines didn't affect performance appreciably:
-      template.remove();
-      document.currentScript.remove();
+        var template = document.currentScript.previousElementSibling;
+        var shadowRoot = template.parentElement.attachShadow({mode: "open"});
+        shadowRoot.appendChild(template.content);
+        // These two lines didn't affect performance appreciably:
+        template.remove();
+        document.currentScript.remove();
     </script>
-    <span></span>
+    <span>${copy_num}</span>
 </div>
 ```
 
 
+## Baseline #2 - single script-based shadow root attachment
 
-## Template-based declarative Shadow DOM
+The second baseline snippet uses a single script at the end of the HTML that loops over all templates to attach the shadow roots and move the template contents into each root. This snippet also removes the `<template>` elements and the final `<script>` node.
 
-The other code snippet uses the new declarative shadow root syntax described in this document:
+This approach is optimized for speed - the entire page is parsed first, and then one script does all of the shadow root attachment and population. The advantage here is that the parser is not blocked for script on each shadow root. The major disadvantage is that streaming is no longer possible. The entire page will consist of inert `<template>` elements that do not render, until the final script loops through and "converts" them into shadow roots. This will likely delay first paint.
 
 
 ```html
+<!-- Repeated chunk: -->
 <div>
-    <template shadowroot=open>
+    <template class=shadowroot>
         <slot></slot>
     </template>
-    <span></span>
+    <span>${copy_num}</span>
 </div>
-```
 
+...
+<!-- Single script at the end: -->
+<script>
+    const shadowroots = document.querySelectorAll('.shadowroot');
+    for (var i=0; i<shadowroots.length; ++i) {
+        const shadowRoot = shadowroots[i].parentElement.attachShadow({mode: "open"});
+        shadowRoot.appendChild(shadowroots[i].content);
+        shadowroots[i].remove();
+    }
+    document.currentScript.remove();
+</script>
+```
 
 
 ## Results
 
 The (very preliminary) results were:
 
-|    | Elapsed (10k copies) |
-|----|-------------------------------|
-| Script-based polyfill | ~9 seconds |
-| Declarative Shadow DOM | ~1.4 seconds |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**Speedup:** | **~6X** |
+|     Version | <none>      |
+|-------------|-------------|
+|     Browser | chrome<br>82.0.4068.4      |
+| Sample size | 50          |
 
 
-It is very important to emphasize that this is just a preliminary look into performance. Clearly the code snippets used are not optimized, and particularly in the case of the inline `<script>` snippets, shadow attachment could be combined into a single step for many/all shadow roots. However, it is interesting to look into a trace of the results (both on a similar time scale), to see where the extra time is being spent/saved for these naive examples:
-
-**<span style="text-decoration:underline;">Script-based snippet trace</span>**
-
-![Script perf trace](images/script_trace.png "Script-based snippet trace")
-
-**<span style="text-decoration:underline;">Declarative Shadow DOM based snippet trace</span>**
-
-![alt_text](images/declarative_trace.png "Declarative Shadow DOM based snippet trace")
+| Benchmark          | Bytes       |              Avg time |      vs Declarative |    vs Inline Script | vs Single Loop Script |
+|:-------------------|------------:|----------------------:|--------------------:|--------------------:|----------------------:|
+| Declarative        | 1034.63 KiB |   248.72ms - 254.60ms |    |          **faster**<br>79% - 79%<br>936.93ms - 951.87ms | **faster**<br>10% - 13%<br>29.32ms - 38.18ms |
+| Inline Script      | 3720.18 KiB | 1189.19ms - 1202.93ms | **slower**<br>369% - 381%<br>936.93ms - 951.87ms |    | **slower**<br>314% - 324%<br>903.03ms - 918.28ms |
+| Single Loop Script | 1044.74 KiB |   282.10ms - 288.72ms | **slower**<br>12% - 15%<br>29.32ms - 38.18ms | **faster**<br>76% - 76%<br>903.03ms - 918.28ms |   |
 
 
-In the script-based snippet, not only does the inline script cause a significant amount of time to be spent in the JS engine, but additionally, each inline script causes the parser to yield to run microtasks. Both of those significantly slow down rendering for the script-based example. In contrast, the declarative snippet can continuously run parsing, including attaching shadow roots, until the parser yields for other reasons. It also skips any JS execution overhead.
+So the declarative snippet is **\~10% faster** than the single loop script, and almost **5 times faster** than the one-script-per-shadow-root approach. It is very important to emphasize that this is just a preliminary look into performance. Clearly the code snippets used are not optimized, and particularly in the case of the inline `<script>` snippets, these are two extremes between one script per shadow root and one script per page. However, it is interesting to look into a trace of the results (on similar time scales), to see where the extra time is being spent/saved for these naive examples:
+
+**<span style="text-decoration:underline;">Declarative Shadow DOM trace</span>**
+
+<table border=2><tr><td><img src="images/declarative_trace.png" /></td></tr></table>
+
+**<span style="text-decoration:underline;">Inline Scripts trace</span>**
+
+<table border=2><tr><td><img src="images/script_trace.png" /></td></tr></table>
+
+**<span style="text-decoration:underline;">Single Loop Script trace</span>**
+
+<table border=2><tr><td><img src="images/script_2_trace.png" /></td></tr></table>
+
+
+In the script-based snippet, not only does the inline script cause a significant amount of time to be spent in the JS engine, but additionally, each inline script causes the parser to yield to run microtasks. Both of those significantly slow down rendering for the inline script example. The single loop script defers **all** script execution time until the end, so the parsing/loading is faster, but then more than half of the total time is spent at the end within the script loop. The declarative snippet continuously runs parsing, including attaching shadow roots, until the parser yields for other reasons. At that point, it spends almost half of its time firing slotchange events at microtask timing.
 
 
 # Feature Detection and Polyfilling
