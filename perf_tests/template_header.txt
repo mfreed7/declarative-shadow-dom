@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+
+<H3>Shadow root creation speed test</H3>
+<div id=log>Running...</div>
+
+<script>
+  const log = document.getElementById('log');
+  const startTime = performance.now();
+  window.addEventListener("load", ev => {
+    const endTime = performance.now();
+    const elapsedMs = endTime - startTime;
+    window.tachometerResult = elapsedMs;
+    log.textContent = `Elapsed time: ${Math.round(elapsedMs)}ms`;
+  });
+</script>
+
+<!-- ${num_copies} copies below... -->
+
+<div id=suppress_layout style="display:none; contain:strict;">

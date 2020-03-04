@@ -1,0 +1,13 @@
+<div>
+    <template>
+        <slot></slot>
+    </template>
+    <script>
+        var template = document.currentScript.previousElementSibling;
+        var shadowRoot = template.parentElement.attachShadow({mode: "open"});
+        shadowRoot.appendChild(template.content);
+        template.remove();
+        document.currentScript.remove();
+    </script>
+    <span>${copy_num}</span>
+</div>

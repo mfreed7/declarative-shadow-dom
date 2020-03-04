@@ -1,0 +1,9 @@
+<script>
+    const shadowroots = document.querySelectorAll('.shadowroot');
+    for (var i=0; i<shadowroots.length; ++i) {
+        const shadowRoot = shadowroots[i].parentElement.attachShadow({mode: "open"});
+        shadowRoot.appendChild(shadowroots[i].content);
+        shadowroots[i].remove();
+    }
+    document.currentScript.remove();
+</script>

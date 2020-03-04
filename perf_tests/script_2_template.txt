@@ -1,0 +1,6 @@
+<div>
+    <template class=shadowroot>
+        <slot></slot>
+    </template>
+    <span>${copy_num}</span>
+</div>
