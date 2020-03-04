@@ -5,6 +5,8 @@ Author: Mason Freed
 
 Last Update: February 7, 2020
 
+Discussion: [DOM issue 831](https://github.com/whatwg/dom/issues/831)
+
 # <a name="motivation"></a> Motivation
 
 Server-Side Rendering (SSR) is an important requirement for many sites, which **precludes** any Javascript execution for getting the first pixels on the screen. The rationale given for this no-JS constraint typically includes:
@@ -50,15 +52,19 @@ With the above markup, the HTML parser will perform these steps:
 
 
 
-1. Upon encountering the opening `<template shadowroot="open">` tag, the parser switches to the [“in template”](https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-intemplate) insertion mode, just as with a normal `<template>` tag. All behaviors already associated with “in template” mode are followed, except for one small change to the “stack of template insertion modes”. The elements within this stack are augmented with a field for the shadowroot attribute value. For “normal” templates, this field is empty, and for declarative shadow roots, it is populated with the value of the “shadowroot” attribute.
+1. Upon encountering the opening `<template shadowroot="open">` tag, the parser switches to the [“in template”](https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-intemplate) insertion mode, just as with a normal `<template>` tag. All behaviors already associated with “in template” mode are followed at this point.
 2. Subsequent child content is parsed using the [existing rules](https://html.spec.whatwg.org/multipage/scripting.html#template-contents) for “in template” insertion mode: child content is parsed into a new DocumentFragment without a browsing context.
 3. Upon parsing the closing `</template>` tag (or when the `<template>` node is popped off the [stack of open elements](https://html.spec.whatwg.org/#stack-of-open-elements) in the case of mis-nested tags):
-    1. The [existing procedure](https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-inhead) for the closing “template” tag are performed.
-    2. Let “shadowroot” equal the value of the “shadowroot” attribute for the template element popped from the stack of template insertion modes.
-    3. If “shadowroot” **does not** contain a valid value (“open” or “closed”), then these steps end here. This is not a declarative shadow root.
-    4. A shadow root is attached to the parent element of the `<template>` tag, with a mode equal to the value of the “shadowroot” attribute (open or closed). (See [this discussion](#missingmode) of the behavior when mode is missing or incorrect.)
-    5. The content of the template’s DocumentFragment is **moved** into the newly-created shadow root.
-    6. The now-empty `<template shadowroot>` element is [removed](https://dom.spec.whatwg.org/#dom-childnode-remove) from the document. (See [this section](#keepthenode) for more discussion.)
+    1. The [existing procedure](https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-inhead) for the closing “template” tag is performed.
+    2. Let "the template element" equal the `<template>` element popped from the stack of open elements in the previous step.
+    3. Let “shadowroot” equal the value of an attribute in "the template element"'s start tag token with the name "shadowroot". (Note: the check is made for the attribute value in the **start tag token**, similar to how [HTML integration point](https://html.spec.whatwg.org/multipage/parsing.html#tree-construction) is defined. This is a parser-only feature.)
+    4. Let “delegates_focus" equal the value of an attribute in "the template element"'s start tag token with the name "shadowroot_delegates_focus".
+    5. If “shadowroot” **does not** contain a valid value (“open” or “closed”), then these steps end here. This is not a declarative shadow root. (See [this discussion](#missingmode).)
+    6. Let "shadowhost" equal the parent node of "the template element". (Note: the shadow root will be attached to the parent of the `<template>` node when the `</template>` closing tag is encountered. If script has moved that node, the shadow root will be attached to the new/current location.)
+    7. If "shadowhost" is null, or is not a [valid shadow host element](https://dom.spec.whatwg.org/#dom-element-attachshadow), stop here - no shadow root will be attached in this case.
+    8. A shadow root is attached to "shadowhost", with a mode equal to “shadowroot” (open or closed), and delegatesFocus equal to "delegates_focus".
+    9. The content of "the template element"'s DocumentFragment is **moved** into the newly-created shadow root.
+    10. "The template element" (now empty) is [removed](https://dom.spec.whatwg.org/#dom-childnode-remove) from the document. (See [this discussion](#keepthenode).)
 
 With the behavior and example code above, the resulting DOM tree will be:
 
@@ -101,13 +107,13 @@ For comparison, the above code snippet and behavior results (under this proposal
 
 ## Serialization
 
-To provide maximum value, a DOM tree containing `#shadowroot`’s should also be able to be serialized using element.innerHTML. However, as the existing behavior is to **not** include the `#shadowroot` or any of its contents, simply adding this capability by default would pose a web compat problem. So instead a new method will be added to Element called `getInnerHTML()`:
+To provide maximum value, a DOM tree containing `#shadowroot`’s should also be able to be serialized using element.innerHTML. However, as the existing behavior is to **not** include the `#shadowroot` or any of its contents, simply adding this capability by default would pose a web compat problem. So instead, a new method will be added to Element called `getInnerHTML()`:
 
 ```javascript
 const html = element.getInnerHTML({ includeShadowRoots: true });
 ```
 
-When called with `includeShadowRoots: true` on nodes that are Shadow Hosts, the returned HTML will includes a `<template shadowroot>` tag containing the shadowroot contents for each such node.
+When called with `includeShadowRoots: true` on nodes that contain Shadow Hosts, the returned HTML will include a `<template shadowroot>` tag containing the shadowroot contents for each such node.
 
 As this is a new method, there are no compat problems to worry about. This method also allows future serialization options to be added, such as a method for serializing adoptedStylesheets found inside shadow roots.
 
