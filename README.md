@@ -3,7 +3,7 @@
 
 Author: Mason Freed
 
-Last Update: February 7, 2020
+Last Update: March 4, 2020
 
 Discussion: [DOM issue 831](https://github.com/whatwg/dom/issues/831)
 
@@ -292,8 +292,7 @@ This approach might be perceived to be less confusing, since it avoids an HTML t
 
 # Performance
 
-As a very simple test, I naively implemented the proposed declarative shadow attachment algorithm, mostly as [written above](#behavior) with all operations occurring at the closing `</template>` tag. This has been built into Chrome as of version 82.0.4060.0, and must be tested with the `--enable-blink-features=DeclarativeShadowDOM` flag provided on the command line. I tested this locally on Chrome v82.0.4068.4 on Linux, on a fairly high-powered Lenovo P920 workstation. I used [tachometer](https://www.npmjs.com/package/tachometer) for all testing. I provided three different inputs, all loaded from local files. Each input consisted of 10,000 copies of the same code snippet, one of which used declarative Shadow DOM, and the other two as baselines. See below for descriptions of each type of snippet. Care was taken to eliminate forced style/layout, by wrapping the set of copies inside a `<div>` with `display:none` and `contain:strict`.
-
+As a very simple test, I naively implemented the proposed declarative shadow attachment algorithm, mostly as [written above](#behavior) with all operations occurring at the closing `</template>` tag. This has been built into Chrome as of version 82.0.4060.0, and must be tested with the `--enable-blink-features=DeclarativeShadowDOM` flag provided on the command line. I tested this locally on Chrome v82.0.4068.4 on Linux, on a fairly high-powered Lenovo P920 workstation. I used [tachometer](https://www.npmjs.com/package/tachometer) for all testing. I provided three different inputs, all loaded from local files. Each input consisted of 10,000 copies of the same code snippet, one of which used declarative Shadow DOM, and the other two as baselines. See below for descriptions of each type of snippet. Care was taken to eliminate forced style/layout, by wrapping the set of copies inside a `<div>` with `display:none` and `contain:strict`. All code can be found [here](https://github.com/mfreed7/declarative-shadow-dom/tree/master/perf_tests).
 
 
 ## Template-based declarative Shadow DOM
