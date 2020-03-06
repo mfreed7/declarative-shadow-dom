@@ -1,0 +1,44 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Polymer/tachometer/master/config.schema.json",
+  "root": ".",
+  "sampleSize": 100,
+  "timeout": 5,
+  "benchmarks": [
+    {
+      "name": "Inline Styles",
+      "url": "example.html?styleType=inline",
+      "measurement": "global",
+      "browser": {
+        "name": "chrome",
+        "binary": "/usr/bin/google-chrome-unstable",
+        "addArguments": ["--enable-blink-features=DeclarativeShadowDOM"],
+        "headless": false,
+        "windowSize": {"width": 1024,"height": 1024}
+      }
+    },
+    {
+      "name": "Adopted Styles",
+      "url": "example.html?styleType=adopted",
+      "measurement": "global",
+      "browser": {
+        "name": "chrome",
+        "binary": "/usr/bin/google-chrome-unstable",
+        "addArguments": ["--enable-blink-features=DeclarativeShadowDOM"],
+        "headless": false,
+        "windowSize": {"width": 1024,"height": 1024}
+      }
+    },
+    {
+      "name": "SSR (Inline Styles)",
+      "url": "example_SSR.html?styleType=inline",
+      "measurement": "global",
+      "browser": {
+        "name": "chrome",
+        "binary": "/usr/bin/google-chrome-unstable",
+        "addArguments": ["--enable-blink-features=DeclarativeShadowDOM"],
+        "headless": false,
+        "windowSize": {"width": 1024,"height": 1024}
+      }
+    }
+  ]
+}

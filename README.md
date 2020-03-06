@@ -58,7 +58,7 @@ With the above markup, the HTML parser will perform these steps:
     1. The [existing procedure](https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-inhead) for the closing “template” tag is performed.
     2. Let "the template element" equal the `<template>` element popped from the stack of open elements in the previous step.
     3. Let “shadowroot” equal the value of an attribute in "the template element"'s start tag token with the name "shadowroot". (Note: the check is made for the attribute value in the **start tag token**, similar to how [HTML integration point](https://html.spec.whatwg.org/multipage/parsing.html#tree-construction) is defined. This is a parser-only feature.)
-    4. Let “delegates_focus" equal the value of an attribute in "the template element"'s start tag token with the name "shadowroot_delegates_focus".
+    4. Let “delegates_focus" equal the value of an attribute in "the template element"'s start tag token with the name "shadowrootdelegatesfocus".
     5. If “shadowroot” **does not** contain a valid value (“open” or “closed”), then these steps end here. This is not a declarative shadow root. (See [this discussion](#missingmode).)
     6. Let "shadowhost" equal the parent node of "the template element". (Note: the shadow root will be attached to the parent of the `<template>` node when the `</template>` closing tag is encountered. If script has moved that node, the shadow root will be attached to the new/current location.)
     7. If "shadowhost" is null, or is not a [valid shadow host element](https://dom.spec.whatwg.org/#dom-element-attachshadow), stop here - no shadow root will be attached in this case.
@@ -123,10 +123,10 @@ As this is a new method, there are no compat problems to worry about. This metho
 Because the `attachShadow()` function has one other argument, `delegates_focus`, and potentially more in the future, there needs to be a way to specify these parameters in the declarative case. This is important not only for developer flexibility, but also so that the `getInnerHTML()` has a way to completely represent all possible shadow roots found in content. To achieve this, additional attributes will be added to the `<template shadowroot>` tag:
 
 ```html
-<template shadowroot="open" shadowroot_delegates_focus>
+<template shadowroot="open" shadowrootdelegatesfocus>
 ```
 
-Here, the presence of the `shadowroot_delegates_focus` boolean attribute will cause the shadow root to be attached as if this imperative call were used:
+Here, the presence of the `shadowrootdelegatesfocus` boolean attribute will cause the shadow root to be attached as if this imperative call were used:
 
 ```javascript
 attachShadow({ mode = "open", delegatesFocus = true });
@@ -292,7 +292,7 @@ This approach might be perceived to be less confusing, since it avoids an HTML t
 
 # Performance
 
-As a very simple test, I naively implemented the proposed declarative shadow attachment algorithm, mostly as [written above](#behavior) with all operations occurring at the closing `</template>` tag. This has been built into Chrome as of version 82.0.4060.0, and must be tested with the `--enable-blink-features=DeclarativeShadowDOM` flag provided on the command line. I tested this locally on Chrome v82.0.4068.4 on Linux, on a fairly high-powered Lenovo P920 workstation. I used [tachometer](https://www.npmjs.com/package/tachometer) for all testing. I provided three different inputs, all loaded from local files. Each input consisted of 10,000 copies of the same code snippet, one of which used declarative Shadow DOM, and the other two as baselines. See below for descriptions of each type of snippet. Care was taken to eliminate forced style/layout, by wrapping the set of copies inside a `<div>` with `display:none` and `contain:strict`. All code can be found [here](https://github.com/mfreed7/declarative-shadow-dom/tree/master/perf_tests).
+As a very simple test, I naively implemented the proposed declarative shadow attachment algorithm, mostly as [written above](#behavior) with all operations occurring at the closing `</template>` tag. This has been built into Chrome as of version 82.0.4060.0, and must be tested with the `--enable-blink-features=DeclarativeShadowDOM` flag provided on the command line. I tested this locally on Chrome v82.0.4068.4 on Linux, on a fairly high-powered Lenovo P920 workstation. I used [tachometer](https://www.npmjs.com/package/tachometer) for all testing. I provided three different inputs, all loaded from local files. Each input consisted of 10,000 copies of the same code snippet, one of which used declarative Shadow DOM, and the other two as baselines. See below for descriptions of each type of snippet. Care was taken to eliminate forced style/layout, by wrapping the set of copies inside a `<div>` with `display:none` and `contain:strict`. All code can be found [here](perf_tests/explainer_example).
 
 
 ## Template-based declarative Shadow DOM
