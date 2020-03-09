@@ -40,7 +40,7 @@ Three test cases were run:
 - Non-SSR example, with adoptedStylesheets
 - SSR example, with inline styles
 
-All tests were done locally on a fairly high-powered Lenovo P920 workstation, using Chrome 82.0.4068.4 on Linux, and with the `--enable-blink-features=DeclarativeShadowDOM` command line flag. Measurements were taken using [tachometer](https://www.npmjs.com/package/tachometer), and by measuring the time it took to get all content properly rendered on screen. In the non-SSR case, this was defined to be the point at which both the `<my-clock>` and `<my-carousel>` custom elements were defined. For the SSR case, this was defined to be the point at which the entire page had been parsed.
+All tests were performed on a fairly high-powered Lenovo P920 workstation, using Chrome 82.0.4068.4 on Linux, and with the `--enable-blink-features=DeclarativeShadowDOM` command line flag. Measurements were taken using [tachometer](https://www.npmjs.com/package/tachometer), and by measuring the time it took to get all content properly rendered on screen. In the non-SSR case, this was defined to be the point at which both the `<my-clock>` and `<my-carousel>` custom elements were defined. For the SSR case, this was defined to be the point at which the entire page had been parsed. In all cases, the example pages were served from [github.io](https://mfreed7.github.io/declarative-shadow-dom/perf_tests/clock_example/example.html?styleType=inline) over a relatively high-speed network.
 
 ## <a name="numerical_results"></a> Numerical Results
 
@@ -50,11 +50,11 @@ All tests were done locally on a fairly high-powered Lenovo P920 workstation, us
 | Sample size | 250         |
 
 
-| Benchmark           | Bytes      |            Avg time |    vs Inline Styles |   vs Adopted Styles | vs SSR (Inline Styles) |
-|:-------------------|------------:|----------------------:|--------------------:|--------------------:|----------------------:|
-| Inline Styles       | 94.63 KiB  | 273.96ms - 280.71ms |  |  **slower**<br>3% - 7%<br>7.89ms - 17.91ms | **slower**<br>47% - 52%<br>88.24ms - 95.82ms |
-| Adopted Styles      | 94.63 KiB  | 260.73ms - 268.14ms |            **faster**<br>3% - 6%<br>7.89ms - 17.91ms |   | **slower**<br>40% - 45%<br>75.05ms - 83.22ms |
-| SSR (Inline Styles) | 991.39 KiB | 183.58ms - 187.02ms |            **faster**<br>32% - 34%<br>88.24ms - 95.82ms | **faster**<br>29% - 31%<br>75.05ms - 83.22ms |   |
+| Benchmark           | Bytes      | Gzip Bytes   |            Avg time |    vs Inline Styles |   vs Adopted Styles | vs SSR (Inline Styles) |
+|:--------------------|-----------:|-------------:|----------------------:|--------------------:|--------------------:|----------------------:|
+| Inline Styles       | 92,674     |        4,568 | 267.84ms - 277.69ms |         | **slower**<br>4% - 10%<br>10.32ms - 24.98ms | **slower**<br>42% - 48%<br>79.40ms - 89.88ms |
+| Adopted Styles      | 92,674     |        4,568 | 249.69ms - 260.54ms | **faster**<br>4% - 9%<br>10.32ms - 24.98ms |   | **slower**<br>32% - 39%<br>61.27ms - 72.70ms |
+| SSR (Inline Styles) | 1,015,225  |       17,520 | 186.35ms - 189.91ms | **faster**<br>30% - 32%<br>79.4ms - 89.88ms | **faster**<br>25% - 28%<br>61.27ms - 72.7ms |  |
 
 
 
@@ -69,7 +69,15 @@ One thing that becomes obvious when loading the sample pages is that the non-SSR
 
 so that the `<my-carousel>` element is defined first. This leads to the carousel elements being upgraded first, before the clocks, and this leads to a first render of a column of empty carousels. Then, the `<my-clock>` elements upgrade, and the final rendered output looks correct.
 
-Very importantly, if the order of these two script tags above is reversed, so that the clock elements are upgraded first, the non-SSR performance shown in the [Numerical Results](#numerical_results) section is about 2X worse. This is because all of the clocks get rendered first, before the carousels have a chance to upgrade and hide all but one clock per carousel.
+Very importantly, if the order of these two script tags above is reversed, so that the clock elements are upgraded first, the non-SSR performance shown in the [Numerical Results](#numerical_results) section is about 2X worse. This is because all of the clocks get rendered first, before the carousels have a chance to upgrade and hide all but one clock per carousel. A page-level CSS rule like this was added to minimize the effect of the ordering:
+
+```css
+my-clock:not(:defined), my-carousel:not(:defined) {
+  display: none;
+}
+```
+
+With this rule in place, the order of the element scripts no longer changes the results appreciably.
 
 # Conclusions
 
