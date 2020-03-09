@@ -6,7 +6,7 @@
   "benchmarks": [
     {
       "name": "Inline Styles",
-      "url": "example.html?styleType=inline",
+      "url": "https://mfreed7.github.io/declarative-shadow-dom/perf_tests/clock_example/example.html?styleType=inline",
       "measurement": "global",
       "browser": {
         "name": "chrome",
@@ -18,7 +18,7 @@
     },
     {
       "name": "Adopted Styles",
-      "url": "example.html?styleType=adopted",
+      "url": "https://mfreed7.github.io/declarative-shadow-dom/perf_tests/clock_example/example.html?styleType=adopted",
       "measurement": "global",
       "browser": {
         "name": "chrome",
@@ -30,7 +30,7 @@
     },
     {
       "name": "SSR (Inline Styles)",
-      "url": "example_SSR.html?styleType=inline",
+      "url": "https://mfreed7.github.io/declarative-shadow-dom/perf_tests/clock_example/example_SSR.html?styleType=inline",
       "measurement": "global",
       "browser": {
         "name": "chrome",
