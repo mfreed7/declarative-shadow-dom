@@ -31,11 +31,9 @@ class Clock extends HTMLElement {
     }
 
 
-    if (this.shadowRoot) {
-      this.shadowRoot_ = this.shadowRoot;
-    } else {
-      this.shadowRoot_ = this.attachShadow({mode: 'open'});
-      this.shadowRoot_.innerHTML = `
+    if (!this.shadowRoot) {
+      this.attachShadow({mode: 'open'});
+      this.shadowRoot.innerHTML = `
          <div id=wrapper>
            <label id=timezone></label>
            <div id=timedisp>
@@ -49,34 +47,33 @@ class Clock extends HTMLElement {
          <style id=inlinestyles></style>
          `;
       if (useInlineStyles) {
-        const styleTag = this.shadowRoot_.getElementById('inlinestyles');
+        const styleTag = this.shadowRoot.getElementById('inlinestyles');
         styleTag.innerHTML = myStyles;
       }
     }
 
 
-    this.wrapper = this.shadowRoot_.getElementById('wrapper');
-    this.timezoneDisp = this.shadowRoot_.getElementById('timezone');
-    this.hours = this.shadowRoot_.getElementById('hours');
-    this.minutes = this.shadowRoot_.getElementById('minutes');
-    this.seconds = this.shadowRoot_.getElementById('seconds');
+    this.wrapper = this.shadowRoot.getElementById('wrapper');
+    this.timezoneDisp = this.shadowRoot.getElementById('timezone');
+    this.hours = this.shadowRoot.getElementById('hours');
+    this.minutes = this.shadowRoot.getElementById('minutes');
+    this.seconds = this.shadowRoot.getElementById('seconds');
 
     this.fontSize = Number(this.attributes["fontsize"]?.value) || 24;
-    this.sizeUp = this.shadowRoot_.getElementById('sizeup');
-    this.sizeDown = this.shadowRoot_.getElementById('sizedown');
-    const that = this;
-    this.sizeUp.addEventListener("click",function() {
-      that.fontSize += 2;
-      that.setFont();
+    this.sizeUp = this.shadowRoot.getElementById('sizeup');
+    this.sizeDown = this.shadowRoot.getElementById('sizedown');
+    this.sizeUp.addEventListener("click",() => {
+      this.fontSize += 2;
+      this.setFont();
     });
-    this.sizeDown.addEventListener("click",function() {
-      that.fontSize -= 2;
-      that.setFont();
+    this.sizeDown.addEventListener("click",() => {
+      this.fontSize -= 2;
+      this.setFont();
     });
 
     if (!useInlineStyles) {
       // adoptedStylesheets are not serialized:
-      this.shadowRoot_.adoptedStyleSheets = [styleSheet];
+      this.shadowRoot.adoptedStyleSheets = [styleSheet];
     }
     this.setFont();
   }

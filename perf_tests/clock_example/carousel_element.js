@@ -32,11 +32,9 @@ class Carousel extends HTMLElement {
       return;
     }
 
-    if (this.shadowRoot) {
-      this.shadowRoot_ = this.shadowRoot;
-    } else {
-      this.shadowRoot_ = this.attachShadow({mode: 'open'});
-      this.shadowRoot_.innerHTML = `
+    if (!this.shadowRoot) {
+      this.attachShadow({mode: 'open'});
+      this.shadowRoot.innerHTML = `
          <div id=border>
            <button id=goleft></button>
            <slot id=contents>Empty Carousel</slot>
@@ -45,35 +43,34 @@ class Carousel extends HTMLElement {
          <style id=inlinestyles></style>
          `;
       if (useInlineStyles) {
-        const styleTag = this.shadowRoot_.getElementById('inlinestyles');
+        const styleTag = this.shadowRoot.getElementById('inlinestyles');
         styleTag.innerHTML = myStyles;
       }
     }
 
     this.selectedItem = Number(this.attributes["selectedItem"]?.value) || 0;
 
-    this.goLeft = this.shadowRoot_.getElementById('goleft');
-    this.goRight = this.shadowRoot_.getElementById('goright');
-    this.contents = this.shadowRoot_.getElementById('contents');
+    this.goLeft = this.shadowRoot.getElementById('goleft');
+    this.goRight = this.shadowRoot.getElementById('goright');
+    this.contents = this.shadowRoot.getElementById('contents');
 
     this.updateView();
-    const that = this;
-    this.goLeft.addEventListener("click",function() {
-      that.selectedItem--;
-      if (that.selectedItem < 0)
-        that.selectedItem = that.numberOfElements()-1;
-      that.updateView();
+    this.goLeft.addEventListener("click", () => {
+      this.selectedItem--;
+      if (this.selectedItem < 0)
+        this.selectedItem = this.numberOfElements()-1;
+      this.updateView();
     });
-    this.goRight.addEventListener("click",function() {
-      that.selectedItem++;
-      if (that.selectedItem >= that.numberOfElements())
-        that.selectedItem = 0;
-      that.updateView();
+    this.goRight.addEventListener("click", () => {
+      this.selectedItem++;
+      if (this.selectedItem >= this.numberOfElements())
+        this.selectedItem = 0;
+      this.updateView();
     });
 
     if (!useInlineStyles) {
       // adoptedStylesheets are not serialized:
-      this.shadowRoot_.adoptedStyleSheets = [styleSheet];
+      this.shadowRoot.adoptedStyleSheets = [styleSheet];
     }
   }
 
