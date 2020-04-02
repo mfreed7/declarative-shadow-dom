@@ -3,7 +3,7 @@
 
 Author: Mason Freed
 
-Last Update: March 4, 2020
+Last Update: April 2, 2020
 
 Discussion: [DOM issue 831](https://github.com/whatwg/dom/issues/831)
 
@@ -118,6 +118,21 @@ When called with `includeShadowRoots: true` on nodes that contain Shadow Hosts, 
 As this is a new method, there are no compat problems to worry about. This method also allows future serialization options to be added, such as a method for serializing adoptedStylesheets found inside shadow roots.
 
 
+# Other Considerations
+
+With the behavior described above, a number of questions and corner cases arise:
+
+## Closed shadow roots
+
+To allow serialization of closed shadow roots, an additional option will be added:
+
+```javascript
+const html = element.getInnerHTML({ includeShadowRoots: true, closedRoots: [shadowRoot1,shadowRoot2,...] });
+```
+
+Using this syntax, if any of the `closedRoots` shadow roots are encountered during serialization, they will be serialized regardless of whether they are open or closed. Closed shadow roots will be serialized using `<template shadowroot=closed>`.
+
+
 ## Additional arguments for attachShadow
 
 Because the `attachShadow()` function has one other argument, `delegates_focus`, and potentially more in the future, there needs to be a way to specify these parameters in the declarative case. This is important not only for developer flexibility, but also so that the `getInnerHTML()` has a way to completely represent all possible shadow roots found in content. To achieve this, additional attributes will be added to the `<template shadowroot>` tag:
@@ -135,23 +150,27 @@ attachShadow({ mode = "open", delegatesFocus = true });
 Additional parameters added to attachShadow in the future could naturally be added as attributes to the declarative `<template shadowroot>` form.
 
 
-## Open Questions
+## Existing declarative shadow roots
 
-With the behavior described above, a number of questions and corner cases arise:
+Because existing components might exist that do not anticipate the existence of a declaratively-created shadowroot, these components might break if they assume `this.attachShadow()` will never throw and will always return an empty shadow root. To accomodate these components, the following changes will be made:
+
+1. If `attachShadow()` is called on a node that already contains a **declaratively-created** shadow root, the existing contents of that shadow root will be removed, and the (now empty) shadow root will be returned by `attachShadow()`. Note that no behavior changes will be made for **imperatively**-created shadow roots. An existing imperatively-created shadow root will cause any subsequent call to `attachShadow()` to throw an exception, as it does today.
+
+2. (Discussed in a separate [issue](https://github.com/w3c/webcomponents/issues/871)) An accessor will be added to `ElementInternals` to provide "declarative Shadow DOM-aware" components access to existing shadow roots, including "closed" shadow roots. The `ElementInternals.shadowRoot` accessor will return any existing `#shadowroot` so that its content can be potentially re-used and connected.
 
 
+## Root element is `<template shadowroot>`
 
-1. How should the fragment parser treat this:
+In this case:
 
  ```javascript
 host.innerHTML = '<template shadowroot=open></template>'
 ```
 
- I.e. should this be smart enough to attach a shadow root to the `<host>` element in this case? Or should this just result in a warning, and a “normal” template inside `<host>`?
+ it would be a bit odd/confusing if this attached a shadow root to the `<host>` element. To avoid confusion, this will just result in a warning, and a “normal” template inside `<host>`.
 
- My current thinking here is to just issue a warning and build a "normal" template. This seems to be the safest.
 
-2. What about a `<template>` containing a declarative shadow root? How should this work:
+## Templates containing root-level declarative shadow roots
 
  ```html
  <template id=my_template>
@@ -163,14 +182,14 @@ host.innerHTML = '<template shadowroot=open></template>'
  </script>
 ```
 
- In this case, should `<div id=host>` get a `#shadowroot` attached?
-
- My current thinking is to **not** attach a shadow root to `<div id=host>` in this case. That seems more difficult and error prone.
+ In this case, similar to the prior example, it would be odd/confusing to attach a `#shadowroot` to `<div id=host>`. Here again, to avoid confusion, this will just issue a warning, and place a “normal” template inside `<host>`.
 
 
-3. How should `adoptedStylesheets` on `#shadowroot` nodes be handled? On the parser side, should there be a way to "point to" a stylesheet that gets automatically adopted within the declarative `#shadowroot`? On the serialization side, should the existing contents of `adoptedStylesheets` be automatically serialized into new `<style>` nodes? This could potentially be controlled by a new `convertAdoptedStylesheetsToInlineStyles` argument to `getInnerHTML()`.
+## Other unanswered questions 
+1. How should `adoptedStylesheets` on `#shadowroot` nodes be handled? On the parser side, should there be a way to "point to" a stylesheet that gets automatically adopted within the declarative `#shadowroot`? On the serialization side, should the existing contents of `adoptedStylesheets` be automatically serialized into new `<style>` nodes? This could potentially be controlled by a new `convertAdoptedStylesheetsToInlineStyles` argument to `getInnerHTML()`.
 
-4. What about CSS custom states and AOM IDL attributes? These can't yet be represented declaratively, so there is no way to serialize them in `getInnerHTML()`. This means that custom elements must re-set these values upon construction. I don't see a better solution than this.
+2. What about CSS custom states and AOM IDL attributes? These can't yet be represented declaratively, so there is no way to serialize them in `getInnerHTML()`. This means that custom elements must re-set these values upon construction. I don't see a better solution than this.
+
 
 # <a name="what-does-declarative-mean"></a> What does declarative Shadow DOM mean?
 
@@ -541,6 +560,10 @@ Taking each point individually:
 *   The significance of the parser changes that would be needed for a new `<shadowroot>` element are not being disputed here. This is the primary reason that this proposal opts for the `<template shadowroot>` approach, rather than proposing a new element type.
 *   Server side rendering, and it’s implied “no-JS” constraint, are not a passing phenomenon. This is now standard practice, and any solution (such as imperative-only shadow dom for style encapsulation) that does not support no-JS is verboten within many design systems. This is a very real constraint which is keeping multiple large enterprises from adopting Web Components. We need to solve this problem. There have also been suggestions that because people aren’t using the various “easy” polyfill solutions for this problem (such as inline `<script>`s to call `attachShadow()`), there must not be a real need for this feature. But that misses the point that the use case is “no-JS” environments - no javascript is allowed.
 *   The user-confusion concern around re-using the template element for declarative Shadow DOM is valid. The `<template>` element can already cause developer confusion. However, as with all new web technologies, there must be some learning and movement of the platform forward. Given the other constraints around any declarative solution, this `<template shadowroot>` solution seems to be the best path forward.
+
+# Security and Privacy Considerations
+
+There are no known security or privacy impacts of this feature. See [the Security And Privacy Self Review](Security_And_Privacy_Self_Review.md) for more detail.
 
 
 # References
