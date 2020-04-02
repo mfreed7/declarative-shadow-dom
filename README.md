@@ -66,6 +66,8 @@ With the above markup, the HTML parser will perform these steps:
     9. The content of "the template element"'s DocumentFragment is **moved** into the newly-created shadow root.
     10. "The template element" (now empty) is [removed](https://dom.spec.whatwg.org/#dom-childnode-remove) from the document. (See [this discussion](#keepthenode).)
 
+One additional change is made to the specification for `HTMLTemplateElement`: the `.content` property will return `null` for the `<template shadowroot="open|closed">` element created during parsing. This will prevent scripts and `MutationObserver`s from gaining access to the internals of the shadow root while parsing is taking place. Since the `<template>` element is only present during parsing, and is removed in step 10 above, this simply prohibits access during parsing.
+
 With the behavior and example code above, the resulting DOM tree will be:
 
 
