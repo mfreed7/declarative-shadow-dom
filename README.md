@@ -447,10 +447,9 @@ To detect support for declarative Shadow DOM, something like this could be used:
 
 ```javascript
 function supportsDeclarativeShadowDOM() {
-  return 'shadowRoot' in HTMLTemplateElement.prototype;
+  return HTMLTemplateElement.prototype.hasOwnProperty("shadowRoot");
 }
 ```
-
 
 To polyfill declarative Shadow DOM, in the most typical use case of custom elements, something like this could be used (from @Rich-Harris [comment](https://github.com/whatwg/dom/issues/831#issuecomment-585372554)):
 
