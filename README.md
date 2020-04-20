@@ -160,6 +160,23 @@ Because existing components might exist that do not anticipate the existence of 
 
 2. (Discussed in a separate [issue](https://github.com/w3c/webcomponents/issues/871)) An accessor will be added to `ElementInternals` to provide "declarative Shadow DOM-aware" components access to existing shadow roots, including "closed" shadow roots. The `ElementInternals.shadowRoot` accessor will return any existing `#shadowroot` so that its content can be potentially re-used and connected.
 
+**Note** that because step #1 above will be the defined behavior for the "attach a shadow root" DOM algorithm, it will also be used when attaching a declarative shadow root. This means that if **multiple** declarative shadow roots are included within a **single** shadow host element, only the **last** declarative shadow root will remain, and all prior shadow root contents will be removed. So:
+
+```html
+<div>
+  <template shadowroot="open">
+    <h1>This h1 tag will be removed, but this shadow root will remain.</h1>
+  </template> 
+  <template shadowroot="closed">
+    <h1>This is the final, *open* shadow root content.</h1>
+  </template> 
+</div>
+```
+
+As noted, only the contents of the second shadow root will remain. And because the original (first) declarative shadow root is kept, and only its contents are removed, the final shadow root in this example will have "open" mode.
+
+The best practice will be to only include a single declarative `<template shadowroot>` element within each host element.
+
 
 ## Root element is `<template shadowroot>`
 
