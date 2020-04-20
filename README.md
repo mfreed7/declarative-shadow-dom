@@ -3,9 +3,11 @@
 
 Author: Mason Freed
 
-Last Update: April 2, 2020
+Last Update: April 20, 2020
 
 Discussion: [DOM issue 831](https://github.com/whatwg/dom/issues/831)
+
+Spec PRs: [DOM](https://github.com/whatwg/dom/pull/858), [HTML](https://github.com/whatwg/html/pull/5465)
 
 # <a name="motivation"></a> Motivation
 
