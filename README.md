@@ -3,11 +3,13 @@
 
 Author: Mason Freed
 
-Last Update: April 20, 2020
+Last Update: April 29, 2020
 
 Discussion: [DOM issue 831](https://github.com/whatwg/dom/issues/831)
 
 Spec PRs: [DOM](https://github.com/whatwg/dom/pull/858), [HTML](https://github.com/whatwg/html/pull/5465)
+
+TAG review: [494](https://github.com/w3ctag/design-reviews/issues/494)
 
 # <a name="motivation"></a> Motivation
 
@@ -526,7 +528,6 @@ Note that in the above code, the only thing added to support SSR is the `if (thi
 *   Invalid situations result in a "normal" `<template>`:
     *   If the “shadowroot” attribute is anything other than “open” or “closed”, then the element is parsed as a “normal” `<template>` element.
     *   If the parent element of the `<template shadowroot>` element already has a shadow root attached, an error will be fired at Window, and the content will be parsed as if it is within a normal `<template>` element.
-    *   (Special case of the prior point) Only the first `<template shadowroot>` element within a given parent/host element will be parsed as a declarative shadow root. Subsequent `<template shadowroot>` children will cause an error to be fired at Window, and those children will be parsed as if they were normal `<template>` elements.
     *   If the parent element of the `<template shadowroot>` element is not a [valid element](https://dom.spec.whatwg.org/#dom-element-attachshadow) to host a shadow root, then an error will be fired at Window, and the content will be parsed as if it is within a normal `<template>` element.
 *   It is legal to nest a `<template shadowroot>` inside a “normal” `<template>`. In this case, the shadow root attachment [behavior](#behavior) occurs only when the “normal” template contents are cloned into the document, and not while parsing the (non-declarative shadow root) `<template>`.
 *   The most straightforward way to share stylesheets across similar components would be to embed a `<link rel=stylesheet>` within the declarative shadow root:
