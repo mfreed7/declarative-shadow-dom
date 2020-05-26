@@ -3,13 +3,17 @@
 
 Author: Mason Freed
 
-Last Update: April 29, 2020
+Last Update: May 26, 2020
 
 Discussion: [DOM issue 831](https://github.com/whatwg/dom/issues/831)
 
 Spec PRs: [DOM](https://github.com/whatwg/dom/pull/858), [HTML](https://github.com/whatwg/html/pull/5465)
 
 TAG review: [494](https://github.com/w3ctag/design-reviews/issues/494)
+
+Request for Mozilla Standards Position: [335](https://github.com/mozilla/standards-positions/issues/335)
+
+Request for WebKit position: [May 26](https://lists.webkit.org/pipermail/webkit-dev/2020-May/031218.html)
 
 # <a name="motivation"></a> Motivation
 
