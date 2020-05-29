@@ -3,7 +3,7 @@
 
 Author: Mason Freed
 
-Last Update: May 26, 2020
+Last Update: May 29, 2020
 
 Discussion: [DOM issue 831](https://github.com/whatwg/dom/issues/831)
 
@@ -22,7 +22,7 @@ Request for WebKit position: [May 26](https://lists.webkit.org/pipermail/webkit-
 - [Motivation](#motivation)
 - [Proposed Solution](#proposed-solution)
   - [Syntax](#syntax)
-  - [<a name="behavior"></a> Behavior](#a-namebehaviora-behavior)
+  - [Behavior](#behavior)
   - [Serialization](#serialization)
 - [Other Considerations](#other-considerations)
   - [Closed shadow roots](#closed-shadow-roots)
@@ -31,7 +31,7 @@ Request for WebKit position: [May 26](https://lists.webkit.org/pipermail/webkit-
   - [Root element is `<template shadowroot>`](#root-element-is-template-shadowroot)
   - [Templates containing root-level declarative shadow roots](#templates-containing-root-level-declarative-shadow-roots)
   - [Other unanswered questions](#other-unanswered-questions)
-- [<a name="what-does-declarative-mean"></a> What does declarative Shadow DOM mean?](#a-namewhat-does-declarative-meana-what-does-declarative-shadow-dom-mean)
+- [What does declarative Shadow DOM mean?](#what-does-declarative-shadow-dom-mean)
 - [Alternatives Considered](#alternatives-considered)
   - [Syntax: `<template shadowroot=open>` vs. `<shadowroot>`](#syntax-template-shadowrootopen-vs-shadowroot)
   - [Syntax: Attributes directly on elements](#syntax-attributes-directly-on-elements)
@@ -42,7 +42,7 @@ Request for WebKit position: [May 26](https://lists.webkit.org/pipermail/webkit-
   - [Results](#results)
 - [Feature Detection and Polyfilling](#feature-detection-and-polyfilling)
 - [Other Details & Questions](#other-details--questions)
-- [<a name="tokyof2f"></a> Prior Discussion at Tokyo F2F:](#a-nametokyof2fa-prior-discussion-at-tokyo-f2f)
+- [Prior Discussion at Tokyo F2F:](#prior-discussion-at-tokyo-f2f)
 - [Security and Privacy Considerations](#security-and-privacy-considerations)
 - [References](#references)
 
