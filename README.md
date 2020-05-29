@@ -15,6 +15,40 @@ Request for Mozilla Standards Position: [335](https://github.com/mozilla/standar
 
 Request for WebKit position: [May 26](https://lists.webkit.org/pipermail/webkit-dev/2020-May/031218.html)
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+# Contents
+
+- [Motivation](#motivation)
+- [Proposed Solution](#proposed-solution)
+  - [Syntax](#syntax)
+  - [<a name="behavior"></a> Behavior](#a-namebehaviora-behavior)
+  - [Serialization](#serialization)
+- [Other Considerations](#other-considerations)
+  - [Closed shadow roots](#closed-shadow-roots)
+  - [Additional arguments for attachShadow](#additional-arguments-for-attachshadow)
+  - [Existing declarative shadow roots](#existing-declarative-shadow-roots)
+  - [Root element is `<template shadowroot>`](#root-element-is-template-shadowroot)
+  - [Templates containing root-level declarative shadow roots](#templates-containing-root-level-declarative-shadow-roots)
+  - [Other unanswered questions](#other-unanswered-questions)
+- [<a name="what-does-declarative-mean"></a> What does declarative Shadow DOM mean?](#a-namewhat-does-declarative-meana-what-does-declarative-shadow-dom-mean)
+- [Alternatives Considered](#alternatives-considered)
+  - [Syntax: `<template shadowroot=open>` vs. `<shadowroot>`](#syntax-template-shadowrootopen-vs-shadowroot)
+  - [Syntax: Attributes directly on elements](#syntax-attributes-directly-on-elements)
+- [Performance](#performance)
+  - [Template-based declarative Shadow DOM](#template-based-declarative-shadow-dom)
+  - [Baseline #1 - inline script-based shadow root attachment](#baseline-1---inline-script-based-shadow-root-attachment)
+  - [Baseline #2 - single script-based shadow root attachment](#baseline-2---single-script-based-shadow-root-attachment)
+  - [Results](#results)
+- [Feature Detection and Polyfilling](#feature-detection-and-polyfilling)
+- [Other Details & Questions](#other-details--questions)
+- [<a name="tokyof2f"></a> Prior Discussion at Tokyo F2F:](#a-nametokyof2fa-prior-discussion-at-tokyo-f2f)
+- [Security and Privacy Considerations](#security-and-privacy-considerations)
+- [References](#references)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+
 # <a name="motivation"></a> Motivation
 
 Server-Side Rendering (SSR) is an important requirement for many sites, which **precludes** any Javascript execution for getting the first pixels on the screen. The rationale given for this no-JS constraint typically includes:
