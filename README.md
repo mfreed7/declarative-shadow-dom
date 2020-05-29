@@ -42,7 +42,7 @@ Request for WebKit position: [May 26](https://lists.webkit.org/pipermail/webkit-
   - [Results](#results)
 - [Feature Detection and Polyfilling](#feature-detection-and-polyfilling)
 - [Other Details & Questions](#other-details--questions)
-- [Prior Discussion at Tokyo F2F:](#prior-discussion-at-tokyo-f2f)
+- [Prior Discussion at Tokyo F2F](#prior-discussion-at-tokyo-f2f)
 - [Security and Privacy Considerations](#security-and-privacy-considerations)
 - [References](#references)
 
@@ -593,7 +593,7 @@ Note that in the above code, the only thing added to support SSR is the `if (thi
   just results in a "normal" `<template>` being created. The entire [motivation](#motivation) for this feature is no-JS environments; therefore, to simplify the implementation, only **parser-generated** templates will create shadow roots, and adding the shadowroot attribute to a `<template>` after the fact will have no effect. To create a shadowroot using JS, the existing `element.attachShadow()` API should be used.
 
 
-# <a name="tokyof2f"></a> Prior Discussion at Tokyo F2F:
+# <a name="tokyof2f"></a> Prior Discussion at Tokyo F2F
 
 The last (major) discussion of declarative Shadow DOM occurred at the 2018 Tokyo Web Components Face-to-Face meeting. The resolution from that meeting was **not** to proceed with a declarative Shadow DOM feature. Here is the summary of [that resolution](https://github.com/whatwg/dom/issues/510#issuecomment-370980398):
 
