@@ -219,6 +219,44 @@ As noted, only the contents of the second shadow root will remain. And because t
 The best practice will be to only include a single declarative `<template shadowroot>` element within each host element.
 
 
+## Ordinary templates containing declarative Shadow DOM
+
+Consider this code:
+
+```html
+<template id=ordinary>
+  <div>
+    <template shadowroot=open>
+      <slot></slot>
+    </template>
+  </div>
+</template>
+```
+
+In this case, the "ordinary" template contains a div, which in turn contains a declarative shadow root. When this is parsed, the contents of the
+template will be parsed into a separate content document, and as the declarative `<template shadowroot>` node is encountered and parsed, a shadow
+root will be attached to `<div>`. Therefore, this template content document will contain a declarative `#shadowroot`. When cloned, the expectation would be
+that the resulting cloned content should also have  declarative `#shadowroot`:
+
+
+```javascript
+container.appendChild(ordinary.content.cloneNode(true));
+```
+
+...should result in the following DOM:
+```html
+<div id=container>
+  <div>
+    #shadowroot
+      <slot></slot>
+  </div>
+</div>
+```
+
+In order to achieve that, the WhatWG DOM spec for [cloning a node](https://dom.spec.whatwg.org/#concept-node-clone) will need to be modified.
+In that algorithm, when a declarative shadow root is encountered on the source node, a shadow root will need to be attached to the copy, and
+the contents of the shadow root also cloned to the copy's shadow root.
+
 ## Root element is `<template shadowroot>`
 
 In this case:
@@ -243,6 +281,7 @@ host.innerHTML = '<template shadowroot=open></template>'
 ```
 
  In this case, similar to the prior example, it would be odd/confusing to attach a `#shadowroot` to `<div id=host>`. Here again, to avoid confusion, this will just issue a warning, and place a “normal” template inside `<host>`.
+
 
 
 ## Other unanswered questions 
