@@ -3,7 +3,7 @@
 
 Author: Mason Freed
 
-Last Update: May 29, 2020
+Last Update: June 11, 2020
 
 Discussion: [DOM issue 831](https://github.com/whatwg/dom/issues/831)
 
@@ -161,12 +161,7 @@ When called with `includeShadowRoots: true` on nodes that contain Shadow Hosts, 
 
 As this is a new method, there are no compat problems to worry about. This method also allows future serialization options to be added, such as a method for serializing adoptedStylesheets found inside shadow roots.
 
-
-# Other Considerations
-
-With the behavior described above, a number of questions and corner cases arise:
-
-## Closed shadow roots
+### Closed shadow roots
 
 To allow serialization of closed shadow roots, an additional option will be added:
 
@@ -174,10 +169,10 @@ To allow serialization of closed shadow roots, an additional option will be adde
 const html = element.getInnerHTML({ includeShadowRoots: true, closedRoots: [shadowRoot1,shadowRoot2,...] });
 ```
 
-Using this syntax, if any of the `closedRoots` shadow roots are encountered during serialization, they will be serialized regardless of whether they are open or closed. Closed shadow roots will be serialized using `<template shadowroot=closed>`.
+Using this syntax, if any of the `closedRoots` shadow roots are encountered during serialization, they will be serialized regardless of whether they are open or closed. Closed shadow roots will be serialized using `<template shadowroot="closed">`.
 
 
-## Additional arguments for attachShadow
+### Additional arguments for attachShadow
 
 Because the `attachShadow()` function has one other argument, `delegates_focus`, and potentially more in the future, there needs to be a way to specify these parameters in the declarative case. This is important not only for developer flexibility, but also so that the `getInnerHTML()` has a way to completely represent all possible shadow roots found in content. To achieve this, additional attributes will be added to the `<template shadowroot>` tag:
 
@@ -193,6 +188,10 @@ attachShadow({ mode = "open", delegatesFocus = true });
 
 Additional parameters added to attachShadow in the future could naturally be added as attributes to the declarative `<template shadowroot>` form.
 
+
+# Other Considerations
+
+With the behavior described above, a number of questions and corner cases arise:
 
 ## Existing declarative shadow roots
 
