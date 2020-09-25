@@ -3,17 +3,7 @@
 
 Author: Mason Freed
 
-Last Update: June 11, 2020
-
-Discussion: [DOM issue 831](https://github.com/whatwg/dom/issues/831)
-
-Spec PRs: [DOM](https://github.com/whatwg/dom/pull/858), [HTML](https://github.com/whatwg/html/pull/5465)
-
-TAG review: [494](https://github.com/w3ctag/design-reviews/issues/494)
-
-Request for Mozilla Standards Position: [335](https://github.com/mozilla/standards-positions/issues/335)
-
-Request for WebKit position: [May 26](https://lists.webkit.org/pipermail/webkit-dev/2020-May/031218.html)
+Last Update: September 25, 2020
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -666,3 +656,18 @@ There are no known security or privacy impacts of this feature. See [the Securit
 # References
 
 This document borrows very heavily from [this W3C proposal](https://github.com/w3c/webcomponents/blob/gh-pages/proposals/Declarative-Shadow-DOM.md), this [WHATWG proposal/discussion](https://github.com/whatwg/dom/issues/510), this [W3C discussion](https://github.com/w3c/webcomponents/issues/71), and this [WICG discussion](https://discourse.wicg.io/t/declarative-shadow-dom/1904/8). See also this related proposal for [declarative custom elements](https://github.com/w3c/webcomponents/blob/gh-pages/proposals/Declarative-Custom-Elements-Strawman.md).
+
+## Helpful links
+
+Discussion: [DOM issue 831](https://github.com/whatwg/dom/issues/831)
+
+Spec PRs:
+ * Declarative Shadow DOM ([HTML](https://github.com/whatwg/html/pull/5465)/[DOM](https://github.com/whatwg/dom/pull/892))
+ * Add ElementInternals.shadowRoot ([HTML](https://github.com/whatwg/html/pull/5912)/[DOM](https://github.com/whatwg/dom/pull/893))
+ * Prevent attachInternals() pre-constructor ([HTML](https://github.com/whatwg/html/pull/5909)/[DOM](https://github.com/whatwg/dom/pull/894))
+
+TAG review: [494](https://github.com/w3ctag/design-reviews/issues/494)
+
+Request for Mozilla Standards Position: [335](https://github.com/mozilla/standards-positions/issues/335)
+
+Request for WebKit position: [May 26](https://lists.webkit.org/pipermail/webkit-dev/2020-May/031218.html)
