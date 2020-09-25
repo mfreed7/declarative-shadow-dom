@@ -14,10 +14,11 @@ Last Update: September 25, 2020
   - [Syntax](#syntax)
   - [Behavior](#behavior)
   - [Serialization](#serialization)
+    - [Closed shadow roots](#closed-shadow-roots)
+    - [Additional arguments for attachShadow](#additional-arguments-for-attachshadow)
 - [Other Considerations](#other-considerations)
-  - [Closed shadow roots](#closed-shadow-roots)
-  - [Additional arguments for attachShadow](#additional-arguments-for-attachshadow)
   - [Existing declarative shadow roots](#existing-declarative-shadow-roots)
+  - [Ordinary templates containing declarative Shadow DOM](#ordinary-templates-containing-declarative-shadow-dom)
   - [Root element is `<template shadowroot>`](#root-element-is-template-shadowroot)
   - [Templates containing root-level declarative shadow roots](#templates-containing-root-level-declarative-shadow-roots)
   - [Other unanswered questions](#other-unanswered-questions)
@@ -35,6 +36,7 @@ Last Update: September 25, 2020
 - [Prior Discussion at Tokyo F2F](#prior-discussion-at-tokyo-f2f)
 - [Security and Privacy Considerations](#security-and-privacy-considerations)
 - [References](#references)
+  - [Helpful links](#helpful-links)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
