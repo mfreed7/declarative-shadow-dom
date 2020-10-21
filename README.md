@@ -3,7 +3,9 @@
 
 Author: Mason Freed
 
-Last Update: September 25, 2020
+Last Update: October 21, 2020
+
+**Note:** There is also a [blog post](https://web.dev/declarative-shadow-dom/) that describes this set of features.
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -35,6 +37,7 @@ Last Update: September 25, 2020
 - [Other Details & Questions](#other-details--questions)
 - [Prior Discussion at Tokyo F2F](#prior-discussion-at-tokyo-f2f)
 - [Security and Privacy Considerations](#security-and-privacy-considerations)
+  - [Potential HTML sanitizer bypass](#potential-html-sanitizer-bypass)
 - [References](#references)
   - [Helpful links](#helpful-links)
 
@@ -652,8 +655,36 @@ Taking each point individually:
 
 # Security and Privacy Considerations
 
-There are no known security or privacy impacts of this feature. See [the Security And Privacy Self Review](Security_And_Privacy_Self_Review.md) for more detail.
+There are no known security or privacy impacts of this feature itself. (See TAG review [Security And Privacy Self Review](Security_And_Privacy_Self_Review.md).)
 
+## Potential HTML sanitizer bypass
+
+One related security concern exists for HTML sanitizers that:
+ 1. Use the browser's parser (e.g. through [`DOMParser`](https://developer.mozilla.org/en-US/docs/Web/API/DOMParser), [`innerHTML`](https://developer.mozilla.org/en-US/docs/Web/API/Element/innerHTML), etc.),
+ 2. Do *not* have built-in understanding of declarative Shadow DOM, ***and***
+ 3. (Importantly) return live DOM rather than HTML.
+
+Essentially, the problem here is that these sanitizers use the built-in parser to generate a `DocumentFragment` containing *all* of the parsed DOM content. They then walk the resulting DOM tree to filter and remove malicious nodes. And then, in the case that live DOM output was requested, they **return the resulting tree**. If a closed declarative Shadow Root was part of the malicious code, the tree pruning portion of the sanitizer can't detect or prune the closed shadow root, which allows an attack vector. Example code:
+
+```javascript
+const xss = `
+    <div>
+      <template shadowroot=closed>
+        <img src="nonexistent.png" onerror="alert('xss!')">
+      </template>
+    </div>
+`;
+
+const clean_html = SanitizerLibrary.sanitize(xss);
+div.innerHTML = clean_html; // This is still safe.
+
+const dom_element = SanitizerLibrary.sanitize(xss, {RETURN_RAW_DOM: true});
+div.appendChild(dom_element); // XSS!
+```
+
+Note the example `RETURN_RAW_DOM` option above. If the library implements that option by simply returning the parsed/pruned DOM tree from DOMParser, it would still contain the declarative Shadow Root with XSS code. If, instead, a string containing the sanitized HTML is returned (as is the typical default behavior of most sanitizer libraries), this would still be safe. In that case, the `.innerHTML` attribute would have been used on the DOM tree to retrieve the HTML, and `innerHTML` (by [spec](https://w3c.github.io/DOM-Parsing/#the-innerhtml-mixin)) does not serialize shadow trees.
+
+It is important for sanitizer libraries to be aware of this potential issue, and ensure safety in the presence of declarative Shadow DOM. The most straightforward way to ensure safety is to *always* use [`importNode()`](https://developer.mozilla.org/en-US/docs/Web/API/Document/importNode) to import the DOM tree into the current document. Because `importNode()` is [specified](https://dom.spec.whatwg.org/#dom-document-importnode) to return a **clone** of the node, which (by [spec](https://dom.spec.whatwg.org/#concept-node-clone) and [spec](https://html.spec.whatwg.org/multipage/parsing.html#html-fragment-serialisation-algorithm)) does not clone shadow trees, this will always remove all shadow trees.
 
 # References
 
