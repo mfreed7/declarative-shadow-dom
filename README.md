@@ -3,7 +3,7 @@
 
 Author: Mason Freed
 
-Last Update: October 21, 2020
+Last Update: November 13, 2020
 
 **Note:** There is also a [blog post](https://web.dev/declarative-shadow-dom/) that describes this set of features.
 
@@ -34,10 +34,12 @@ Last Update: October 21, 2020
   - [Baseline #2 - single script-based shadow root attachment](#baseline-2---single-script-based-shadow-root-attachment)
   - [Results](#results)
 - [Feature Detection and Polyfilling](#feature-detection-and-polyfilling)
+- [Example Custom Element](#example-custom-element)
 - [Other Details & Questions](#other-details--questions)
 - [Prior Discussion at Tokyo F2F](#prior-discussion-at-tokyo-f2f)
 - [Security and Privacy Considerations](#security-and-privacy-considerations)
   - [Potential HTML sanitizer bypass](#potential-html-sanitizer-bypass)
+  - [Mitigation](#mitigation)
 - [References](#references)
   - [Helpful links](#helpful-links)
 
@@ -257,7 +259,7 @@ the contents of the shadow root also cloned to the copy's shadow root.
 In this case:
 
  ```javascript
-host.innerHTML = '<template shadowroot=open></template>'
+host.setInnerHTML('<template shadowroot=open></template>', ...)
 ```
 
  it would be a bit odd/confusing if this attached a shadow root to the `<host>` element. To avoid confusion, this will just result in a warning, and a “normal” template inside `<host>`.
@@ -524,52 +526,55 @@ function supportsDeclarativeShadowDOM() {
 }
 ```
 
-To **make use of** declarative Shadow DOM, in the most typical use case of custom elements, something like this could be used (from @Rich-Harris [comment](https://github.com/whatwg/dom/issues/831#issuecomment-585372554)):
+Polyfilling is also relatively easy:
 
+```javascript
+document.querySelectorAll('template[shadowroot]').forEach(template => {
+  const mode = template.getAttribute('shadowroot');
+  const shadowRoot = template.parentNode.attachShadow({ mode });
+  shadowRoot.appendChild(template.content);
+  template.remove();
+}
+```
+
+# Example Custom Element
+
+To **make use of** declarative Shadow DOM, in the most typical use case of custom elements, something like this could be used (hat tip to @Rich-Harris for the [idea](https://github.com/whatwg/dom/issues/831#issuecomment-585372554)). This example can be seen live, [here](https://jsbin.com/qehoqej/2/edit?html,output).
 
 ```html
-<custom-element>
+<my-clock>
     <template shadowroot=open>
-        <slot></slot>
+        <!-- This is the SSR content -->
+        <style> Clock styles here </style>
+        <div>
+          <span id=hour>12</span> : <span id=min>34</span> : <span id=sec>56</span>
+        </div>
     </template>
-    <span></span>
-</custom-element>
+</my-clock>
 <script>
-  class Clock extends HTMLElement {
+ customElements.define('my-clock', class extends HTMLElement {
+    #internals = null;
     constructor() {
       super();
-
-      // Detect whether we have SSR content already
-      if (this.shadowRoot) {
-        // declarative shadow root exists
-        this.hours = this.shadowRoot.querySelector('.hours');
-        this.minutes = this.shadowRoot.querySelector('.minutes');
-        this.seconds = this.shadowRoot.querySelector('.seconds');
-      } else {
-        // declarative shadow root doesn't exist
-        this.attachShadow({ mode: 'open', serializable: true });
-        this.hours = document.createElement('span');
-        this.hours.className = 'hours';
-        this.minutes = document.createElement('span');
-        this.minutes.className = 'minutes';
-        this.seconds = document.createElement('span');
-        this.seconds.className = 'seconds';
-
-        this.shadowRoot.append(
-          this.hours,
-          document.createTextNode(' : '),
-          this.minutes,
-          document.createTextNode(' : '),
-          this.seconds
-        );
+      this.#internals = this.attachInternals();
+      if (!this.#internals.shadowRoot) {
+        // If we don't have SSR content, build the shadow root
+        this.attachShadow({mode: 'open'}).innerHTML = `
+          <style> Clock styles here </style>
+          <div>
+            <span id=hour></span> : <span id=min></span> : <span id=sec></span>
+          </div>
+        `;
       }
+      const shadow = this.#internals.shadowRoot;
+      this.hours = shadow.querySelector('#hour');
+      this.minutes = shadow.querySelector('#min');
+      this.seconds = shadow.querySelector('#sec');
     }
 
     connectedCallback() {
       this.update();
-      this.interval = setInterval(() => {
-        this.update();
-      }, 1000);
+      this.interval = setInterval(() => this.update(), 1000);
     }
 
     disconnectedCallback() {
@@ -577,19 +582,17 @@ To **make use of** declarative Shadow DOM, in the most typical use case of custo
     }
 
     update() {
+      const pad = v => {return String(v).padStart(2,'0')}
       const d = new Date();
       this.hours.textContent = pad(d.getHours());
       this.minutes.textContent = pad(d.getMinutes());
       this.seconds.textContent = pad(d.getSeconds());
     }
-  }
-
-  customElements.define('custom-element', Clock);
+  });
 </script>
 ```
 
-Note that in the above code, the only thing added to support SSR is the `if (this.shadowRoot)` block, which hooks up element references and event handlers. This code assumes that the SSR content always matches the hydrated content, as it does not include any code to diff the two. This proposal is for the declarative Shadow DOM primitive, and does not propose a particular way to handle SSR vs. CSR content matching.
-
+Note that in the above code, the only thing added to support SSR is the `if (!this.#internals.shadowRoot)` block, which handles building the shadow root if none was already present from declarative content. This code assumes that any declarative SSR content always matches the hydrated content, as it does not include any code to diff the two. This proposal is for the declarative Shadow DOM primitive, and does not propose a particular way to handle SSR vs. CSR content matching.
 
 # Other Details & Questions
 
@@ -659,7 +662,7 @@ There are no known security or privacy impacts of this feature itself. (See TAG 
 
 ## Potential HTML sanitizer bypass
 
-One related security concern exists for HTML sanitizers that:
+One security concern exists for HTML sanitizers that:
  1. Use the browser's parser (e.g. through [`DOMParser`](https://developer.mozilla.org/en-US/docs/Web/API/DOMParser), [`innerHTML`](https://developer.mozilla.org/en-US/docs/Web/API/Element/innerHTML), etc.),
  2. Do *not* have built-in understanding of declarative Shadow DOM, ***and***
  3. (Importantly) return live DOM rather than HTML.
@@ -685,6 +688,37 @@ div.appendChild(dom_element); // XSS!
 Note the example `RETURN_RAW_DOM` option above. If the library implements that option by simply returning the parsed/pruned DOM tree from DOMParser, it would still contain the declarative Shadow Root with XSS code. If, instead, a string containing the sanitized HTML is returned (as is the typical default behavior of most sanitizer libraries), this would still be safe. In that case, the `.innerHTML` attribute would have been used on the DOM tree to retrieve the HTML, and `innerHTML` (by [spec](https://w3c.github.io/DOM-Parsing/#the-innerhtml-mixin)) does not serialize shadow trees.
 
 It is important for sanitizer libraries to be aware of this potential issue, and ensure safety in the presence of declarative Shadow DOM. The most straightforward way to ensure safety is to *always* use [`importNode()`](https://developer.mozilla.org/en-US/docs/Web/API/Document/importNode) to import the DOM tree into the current document. Because `importNode()` is [specified](https://dom.spec.whatwg.org/#dom-document-importnode) to return a **clone** of the node, which (by [spec](https://dom.spec.whatwg.org/#concept-node-clone) and [spec](https://html.spec.whatwg.org/multipage/parsing.html#html-fragment-serialisation-algorithm)) does not clone shadow trees, this will always remove all shadow trees.
+
+## Mitigation
+
+To mitigate the risk of the above XSS issue, this feature (declarative Shadow DOM) will be disabled by default for all HTML fragment parser entry points. This includes:
+ - `Element.innerHTML = html`
+ - `DOMParser.parseFromString(html);`
+ - etc.
+
+In order to parse HTML that contains declarative Shadow DOM using the fragment parser, these modified methods will be needed:
+
+```javascript
+  div.innerHTML = content; // DSD ignored
+  div.setInnerHTML(content, {allowShadowRoot: true}); // DSD allowed/parsed
+
+  let dp = DOMParser();
+  dp.parseFromString(content, "text/html"); // DSD ignored
+  dp.parseFromString(content, "text/html", {allowShadowRoot: true}); // DSD allowed/parsed
+````
+
+When page content is being parsed, e.g. for the main page, no such opt-in is necessary:
+
+```html
+  <!DOCTYPE html>
+  <body>
+    <div>
+      <template shadowroot=open>
+        This will be inside a shadow root
+      </template>
+    </div>
+  </body>
+```
 
 # References
 
