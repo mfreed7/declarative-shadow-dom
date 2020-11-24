@@ -3,7 +3,7 @@
 
 Author: Mason Freed
 
-Last Update: November 13, 2020
+Last Update: November 24, 2020
 
 **Note:** There is also a [blog post](https://web.dev/declarative-shadow-dom/) that describes this set of features.
 
@@ -658,7 +658,7 @@ Taking each point individually:
 
 # Security and Privacy Considerations
 
-There are no known security or privacy impacts of this feature itself. (See TAG review [Security And Privacy Self Review](Security_And_Privacy_Self_Review.md).)
+There are no known security or privacy impacts of this feature itself. (See TAG review [Security And Privacy Self Review](Security_And_Privacy_Self_Review.md).) There is, however, a potential sanitizer bypass, for "older" sanitizers that are not aware of declarative Shadow DOM.
 
 ## Potential HTML sanitizer bypass
 
@@ -694,20 +694,22 @@ It is important for sanitizer libraries to be aware of this potential issue, and
 To mitigate the risk of the above XSS issue, this feature (declarative Shadow DOM) will be disabled by default for all HTML fragment parser entry points. This includes:
  - `Element.innerHTML = html`
  - `DOMParser.parseFromString(html);`
+ - `Range.createContextualFragment(html);`
+ - `XMLHttpRequest.open();`
+ - `insertAdjacentHTML(position, html);`
+ - `createHTMLDocument().write(html);`
  - etc.
 
-In order to parse HTML that contains declarative Shadow DOM using the fragment parser, these modified methods will be needed:
+In order to imperatively parse HTML that contains declarative Shadow DOM using the fragment parser, `DOMParser` will need to be used, with the additional opt-in argument, `includeShadowRoots`:
 
 ```javascript
   div.innerHTML = content; // DSD ignored
-  div.setInnerHTML(content, {allowShadowRoot: true}); // DSD allowed/parsed
+  (new DOMParser()).parseFromString(html, "text/html"); // DSD ignored
 
-  let dp = DOMParser();
-  dp.parseFromString(content, "text/html"); // DSD ignored
-  dp.parseFromString(content, "text/html", {allowShadowRoot: true}); // DSD allowed/parsed
+  (new DOMParser()).parseFromString(html, "text/html", {includeShadowRoots: true}); // DSD included
 ````
 
-When page content is being parsed, e.g. for the main page, no such opt-in is necessary:
+When page content is being parsed, e.g. for the main page or in an iframe, no such opt-in is necessary:
 
 ```html
   <!DOCTYPE html>
@@ -720,18 +722,28 @@ When page content is being parsed, e.g. for the main page, no such opt-in is nec
   </body>
 ```
 
+A simple polyfill can be used to get "`setInnerHTML()`" type behavior:
+
+```javascript
+Element.prototype.setInnerHTML = function(content) {
+  const fragment = (new DOMParser()).parseFromString(`<pre>${content}</pre>`,
+        'text/html', {includeShadowRoots: true});
+  this.replaceChildren(...fragment.body.firstChild.childNodes);
+};
+```
+
 # References
 
 This document borrows very heavily from [this W3C proposal](https://github.com/w3c/webcomponents/blob/gh-pages/proposals/Declarative-Shadow-DOM.md), this [WHATWG proposal/discussion](https://github.com/whatwg/dom/issues/510), this [W3C discussion](https://github.com/w3c/webcomponents/issues/71), and this [WICG discussion](https://discourse.wicg.io/t/declarative-shadow-dom/1904/8). See also this related proposal for [declarative custom elements](https://github.com/w3c/webcomponents/blob/gh-pages/proposals/Declarative-Custom-Elements-Strawman.md).
 
 ## Helpful links
 
-Discussion: [DOM issue 831](https://github.com/whatwg/dom/issues/831)
+Discussion: [DOM issue 831](https://github.com/whatwg/dom/issues/831) (and [#912](https://github.com/whatwg/dom/issues/912)/[#913](https://github.com/whatwg/dom/issues/913))
 
 Spec PRs:
- * Declarative Shadow DOM ([HTML](https://github.com/whatwg/html/pull/5465)/[DOM](https://github.com/whatwg/dom/pull/892))
- * Add ElementInternals.shadowRoot ([HTML](https://github.com/whatwg/html/pull/5912)/[DOM](https://github.com/whatwg/dom/pull/893))
- * Prevent attachInternals() pre-constructor ([HTML](https://github.com/whatwg/html/pull/5909)/[DOM](https://github.com/whatwg/dom/pull/894))
+ * Declarative Shadow DOM ([HTML](https://github.com/whatwg/html/pull/5465)/[DOM](https://github.com/whatwg/dom/pull/892)/[XHR](https://github.com/whatwg/xhr/pull/300))
+ * Add ElementInternals.shadowRoot ([HTML](https://github.com/whatwg/html/pull/5912)/[DOM](https://github.com/whatwg/dom/pull/893)) - Merged
+ * Prevent attachInternals() pre-constructor ([HTML](https://github.com/whatwg/html/pull/5909)/[DOM](https://github.com/whatwg/dom/pull/894)) - Merged
 
 TAG review: [494](https://github.com/w3ctag/design-reviews/issues/494)
 
