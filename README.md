@@ -3,7 +3,7 @@
 
 Author: Mason Freed
 
-Last Update: November 24, 2020
+Last Update: November 30, 2020
 
 **Note:** There is also a [blog post](https://web.dev/declarative-shadow-dom/) that describes this set of features.
 
@@ -728,7 +728,8 @@ A simple polyfill can be used to get "`setInnerHTML()`" type behavior:
 Element.prototype.setInnerHTML = function(content) {
   const fragment = (new DOMParser()).parseFromString(`<pre>${content}</pre>`,
         'text/html', {includeShadowRoots: true});
-  this.replaceChildren(...fragment.body.firstChild.childNodes);
+  (el instanceof HTMLTemplateElement ? el.content : el).replaceChildren(
+        ...fragment.body.firstChild.childNodes);
 };
 ```
 
