@@ -3,7 +3,7 @@
 
 Author: Mason Freed
 
-Last Update: November 30, 2020
+Last Update: January 25, 2021
 
 **Note:** There is also a [blog post](https://web.dev/declarative-shadow-dom/) that describes this set of features.
 
@@ -32,6 +32,7 @@ Last Update: November 30, 2020
   - [Template-based declarative Shadow DOM](#template-based-declarative-shadow-dom)
   - [Baseline #1 - inline script-based shadow root attachment](#baseline-1---inline-script-based-shadow-root-attachment)
   - [Baseline #2 - single script-based shadow root attachment](#baseline-2---single-script-based-shadow-root-attachment)
+  - [Baseline #3 - single script-based shadow root attachment](#baseline-3---single-mutationobserver-based-polyfill-script)
   - [Results](#results)
 - [Feature Detection and Polyfilling](#feature-detection-and-polyfilling)
 - [Example Custom Element](#example-custom-element)
