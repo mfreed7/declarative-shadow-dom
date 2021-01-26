@@ -1,0 +1,15 @@
+<script>
+function attachShadowRoots(mutationsList) {
+  for (let mutation of mutationsList) {
+    for (let n of mutation.addedNodes) {
+      if (n.classList.contains('shadowroot')) {
+        const shadowRoot = n.parentElement.attachShadow({mode: "open"});
+        shadowRoot.appendChild(n.content);
+        n.remove();
+      }
+    }
+  }
+}
+(new MutationObserver(attachShadowRoots)).observe(document.body, { childList: true, subtree: true });
+</script>
+

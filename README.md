@@ -416,27 +416,19 @@ The declarative Shadow DOM snippet uses the `<template shadowroot>` element as d
 
 
 ```html
-<div>
-    <template shadowroot=open>
-        <slot></slot>
-    </template>
-    <span>${copy_num}</span>
-</div>
+<div><template shadowroot=open></template></div>
 ```
 
 
 ## Baseline #1 - inline script-based shadow root attachment
 
-The first baseilne snippet replicates a proposed alternative to native declarative Shadow DOM, which uses an inline script placed just after each `<template>` to attach the shadow root and move the template contents into the root. For completeness, this snippet also removes the `<template>` element and the inline `<script>` node, so that the resulting tree is identical to the declarative output. I found that the results did not change appreciably if both the `<template>` and `<script>` were left in the document instead.
+The first baseline snippet replicates a proposed alternative to native declarative Shadow DOM, which uses an inline script placed just after each `<template>` to attach the shadow root and move the template contents into the root. For completeness, this snippet also removes the `<template>` element and the inline `<script>` node, so that the resulting tree is identical to the declarative output. I found that the results did not change appreciably if both the `<template>` and `<script>` were left in the document instead.
 
 This approach is the most straightforward replica of a declarative shadow dom solution - the shadow root is attached and populated immediately after it is parsed, so that content streaming is possible.
 
 
 ```html
-<div>
-    <template>
-        <slot></slot>
-    </template>
+<div><template></template>
     <script>
         var template = document.currentScript.previousElementSibling;
         var shadowRoot = template.parentElement.attachShadow({mode: "open"});
@@ -445,7 +437,6 @@ This approach is the most straightforward replica of a declarative shadow dom so
         template.remove();
         document.currentScript.remove();
     </script>
-    <span>${copy_num}</span>
 </div>
 ```
 
@@ -454,17 +445,14 @@ This approach is the most straightforward replica of a declarative shadow dom so
 
 The second baseline snippet uses a single script at the end of the HTML that loops over all templates to attach the shadow roots and move the template contents into each root. This snippet also removes the `<template>` elements and the final `<script>` node.
 
-This approach is optimized for speed - the entire page is parsed first, and then one script does all of the shadow root attachment and population. The advantage here is that the parser is not blocked for script on each shadow root. The major disadvantage is that streaming is no longer possible. The entire page will consist of inert `<template>` elements that do not render, until the final script loops through and "converts" them into shadow roots. This will likely delay first paint.
+This approach is optimized for speed - the entire page is parsed first, and then one script does all of the shadow root attachment and population. The advantage here is that the parser is not blocked for script on each shadow root. The major disadvantages are:
+ 1. Streaming is no longer possible. The entire page will consist of inert `<template>` elements that do not render, until the final script loops through and "converts" them into shadow roots.
+ 2. Content shifts will likely occur. The initially-parsed result, if rendered, will not contain the shadow content. Once the final loop runs, and shadow roots are attached, the page layout will likely change, leading to CLS problems.
 
 
 ```html
 <!-- Repeated chunk: -->
-<div>
-    <template class=shadowroot>
-        <slot></slot>
-    </template>
-    <span>${copy_num}</span>
-</div>
+<div><template class=shadowroot></template></div>
 
 ...
 <!-- Single script at the end: -->
@@ -479,6 +467,39 @@ This approach is optimized for speed - the entire page is parsed first, and then
 </script>
 ```
 
+## Baseline #3 - single MutationObserver-based polyfill script
+
+The third baseline snippet uses a single synchronous polyfill script at the top of the HTML, which installs a `MutationObserver` that attaches shadow roots to any `<template shadowroot>` elements that it finds, and moves the template contents into each root. Similarly, this snippet removes the `<template>` element.
+
+This approach is an attempt to get closer to the streaming (and lower CLS) inline script solution, while attempting to mitigate the parsing and compilation time required for repeated inline scripts. The major disadvantages here are:
+ - This MutationObserver must be placed on document.body, and must observe all node additions to the document. This significantly slows down tree building, given the JS overhead for each element.
+ - There is no "children finished parsing" mutation event. This means that the mutation observer in this polyfill must simply assume that by the time the callback is called, all of the children of the given `<template>` have already been parsed and appended to the tree. If the parser happens to yields in the middle of a `<template>` block, part of the children will be lost by this polyfill.
+
+It has been [proposed](https://github.com/whatwg/dom/issues/398) that a `localNameFilter` be added to `MutationObserver`, similar to the existing [`attributeFilter`](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserverInit/attributeFilter). This would potentially reduce some of the overhead of this approach. To see how that might affect this benchmark, these tests were conducted with a [locally-patched](https://chromium-review.googlesource.com/c/chromium/src/+/2649485/1/third_party/blink/renderer/core/dom/child_list_mutation_scope.h) version of Chromium that only issues calls to `MutationObserver`s for `<template>` elements, simulating the `localNameFilter` feature. All results shown in this section utilize this same version of Chromium, which is otherwise a Tip-of-Tree version 90 build. Without this local change, the MutationObserver version exhibits more than 2X worse performance.
+
+```html
+<!-- Single script at the beginning: -->
+<script>
+function attachShadowRoots(mutationsList) {
+  for (let mutation of mutationsList) {
+    for (let n of mutation.addedNodes) {
+      if (n.classList.contains('shadowroot')) {
+        const shadowRoot = n.parentElement.attachShadow({mode: "open"});
+        shadowRoot.appendChild(n.content);
+        n.remove();
+      }
+    }
+  }
+}
+(new MutationObserver(attachShadowRoots)).observe(document.body,
+     { childList: true, subtree: true });
+</script>
+...
+
+<!-- Repeated chunk: -->
+<div><template class=shadowroot></template></div>
+```
+
 
 ## Results
 
@@ -486,18 +507,12 @@ The (very preliminary) results were:
 
 |     Version | <none>      |
 |-------------|-------------|
-|     Browser | chrome<br>82.0.4068.4      |
-| Sample size | 50          |
+|     Browser | chrome<br>90.0.4400.0      |
+| Sample size | 100          |
 
+![Data table](perf_tests/explainer_example/results.png)
 
-| Benchmark          | Bytes       |              Avg time |      vs Declarative |    vs Inline Script | vs Single Loop Script |
-|:-------------------|------------:|----------------------:|--------------------:|--------------------:|----------------------:|
-| Declarative        | 1034.63 KiB |   248.72ms - 254.60ms |    |          **faster**<br>79% - 79%<br>936.93ms - 951.87ms | **faster**<br>10% - 13%<br>29.32ms - 38.18ms |
-| Inline Script      | 3720.18 KiB | 1189.19ms - 1202.93ms | **slower**<br>369% - 381%<br>936.93ms - 951.87ms |    | **slower**<br>314% - 324%<br>903.03ms - 918.28ms |
-| Single Loop Script | 1044.74 KiB |   282.10ms - 288.72ms | **slower**<br>12% - 15%<br>29.32ms - 38.18ms | **faster**<br>76% - 76%<br>903.03ms - 918.28ms |   |
-
-
-So the declarative snippet is **\~10% faster** than the single loop script, and almost **5 times faster** than the one-script-per-shadow-root approach. It is very important to emphasize that this is just a preliminary look into performance. Clearly the code snippets used are not optimized, and particularly in the case of the inline `<script>` snippets, these are two extremes between one script per shadow root and one script per page. However, it is interesting to look into a trace of the results (on similar time scales), to see where the extra time is being spent/saved for these naive examples:
+So the declarative snippet is **\~33% faster** than the single loop script, **~65% faster** than the MutationObserver approach (including the simulated `localNameFilter`), and around **15 times faster** than the one-script-per-shadow-root approach. It is very important to emphasize that this is just a preliminary look into performance. Clearly the code snippets used are not optimized, and particularly in the case of the inline `<script>` snippets, there are likely some optimizations that can be made to tailor these scripts to the particular site. These are just the straightforward, not-too-fancy comparisons that can be made. Having said that, it is interesting to look into a trace of the results (on similar time scales), to see where the extra time is being spent/saved for these naive examples:
 
 **<span style="text-decoration:underline;">Declarative Shadow DOM trace</span>**
 
@@ -511,9 +526,11 @@ So the declarative snippet is **\~10% faster** than the single loop script, and 
 
 <table border=2><tr><td><img src="images/script_2_trace.png" /></td></tr></table>
 
+**<span style="text-decoration:underline;">MutationObserver Script trace</span>**
 
-In the script-based snippet, not only does the inline script cause a significant amount of time to be spent in the JS engine, but additionally, each inline script causes the parser to yield to run microtasks. Both of those significantly slow down rendering for the inline script example. The single loop script defers **all** script execution time until the end, so the parsing/loading is faster, but then more than half of the total time is spent at the end within the script loop. The declarative snippet continuously runs parsing, including attaching shadow roots, until the parser yields for other reasons. At that point, it spends almost half of its time firing slotchange events at microtask timing.
+<table border=2><tr><td><img src="images/script_3_trace.png" /></td></tr></table>
 
+In the inline-script-based snippet, not only does the inline script cause a significant amount (more than half) of time to be spent in the JS engine, but additionally, each inline script causes the parser to yield to run microtasks. Both of those significantly slow down rendering for the inline script example. The single loop script defers **all** script execution time until the end, so the parsing/loading is faster, but then more than half of the total time is spent at the end within the script loop, and there is significant layout shift. And the MutationObserver trace shows an even greater percentage of the total time spent executing the JS MutationObserver callbacks, after each parser yield point. In contrast to all of the above, the declarative snippet continuously runs parsing, including attaching shadow roots, until the parser yields for other reasons. There is no JS overhead to be seen.
 
 # Feature Detection and Polyfilling
 

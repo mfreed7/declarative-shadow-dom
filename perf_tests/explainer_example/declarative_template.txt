@@ -1,6 +1,1 @@
-<div>
-    <template shadowroot=open>
-        <slot></slot>
-    </template>
-    <span>${copy_num}</span>
-</div>
+<div><template shadowroot=open></template></div>

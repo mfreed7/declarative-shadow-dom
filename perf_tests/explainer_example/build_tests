@@ -1,6 +1,7 @@
 #!/bin/sh
 
-template_header='template_header.txt'
+template_header_1='template_header_1.txt'
+template_header_2='template_header_2.txt'
 
 decl_template='declarative_template.txt'
 decl_output='test_declarative.html'
@@ -12,38 +13,57 @@ script_template_2='script_2_template.txt'
 script_template_2_end='script_2b_template.txt'
 script_output_2='test_script_2.html'
 
+script_template_3='script_3_template.txt'
+script_template_3_start='script_3b_template.txt'
+script_output_3='test_script_3.html'
+
 #num_copies=10
 num_copies=10000
 
-function write_header() {
-  sed -e "s/\${num_copies}/${num_copies}/" ${template_header} > $1
+function write_header_1() {
+  sed -e "s/\${num_copies}/${num_copies}/" ${template_header_1} > $1
+}
+
+function write_header_2() {
+  sed -e "s/\${num_copies}/${num_copies}/" ${template_header_2} >> $1
 }
 
 function write_footer() {
   cat <<EOF >>$1
-    </div> <!-- id=suppress_layout -->
+</div> <!-- id=suppress_layout -->
 EOF
 }
 
 function write_copies() {
   for (( i=0; i<${num_copies}; i++ )); do
-    sed -e "s/\${copy_num}/${i}/" $1 >> $2
+    ##sed -e "s/\${copy_num}/${i}/" $1 >> $2
+    cat $1 >> $2
   done
 }
 
 echo "Writing ${decl_output}..."
-write_header ${decl_output}
+write_header_1 ${decl_output}
+write_header_2 ${decl_output}
 write_copies ${decl_template} ${decl_output}
 write_footer ${decl_output}
 
 echo "Writing ${script_output_1}..."
-write_header ${script_output_1}
+write_header_1 ${script_output_1}
+write_header_2 ${script_output_1}
 write_copies ${script_template_1} ${script_output_1}
 write_footer ${script_output_1}
 
 echo "Writing ${script_output_2}..."
-write_header ${script_output_2}
+write_header_1 ${script_output_2}
+write_header_2 ${script_output_2}
 write_copies ${script_template_2} ${script_output_2}
 write_footer ${script_output_2}
 cat ${script_template_2_end} >> ${script_output_2}
+
+echo "Writing ${script_output_3}..."
+write_header_1 ${script_output_3}
+cat ${script_template_3_start} >> ${script_output_3}
+write_header_2 ${script_output_3}
+write_copies ${script_template_3} ${script_output_3}
+write_footer ${script_output_3}
 

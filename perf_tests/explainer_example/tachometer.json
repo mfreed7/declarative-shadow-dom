@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/Polymer/tachometer/master/config.schema.json",
   "root": ".",
-  "sampleSize": 50,
+  "sampleSize": 100,
   "timeout": 2,
   "benchmarks": [
     {
@@ -10,7 +10,7 @@
       "measurement": "global",
       "browser": {
         "name": "chrome",
-        "binary": "/usr/bin/google-chrome-unstable",
+        "binary": "/Users/masonfreed/chromium/src/out/Default/Chromium.app/Contents/MacOS/Chromium",
         "addArguments": ["--enable-blink-features=DeclarativeShadowDOM"],
         "headless": false,
         "windowSize": {"width": 1024,"height": 1024}
@@ -22,7 +22,7 @@
       "measurement": "global",
       "browser": {
         "name": "chrome",
-        "binary": "/usr/bin/google-chrome-unstable",
+        "binary": "/Users/masonfreed/chromium/src/out/Default/Chromium.app/Contents/MacOS/Chromium",
         "addArguments": ["--enable-blink-features=DeclarativeShadowDOM"],
         "headless": false,
         "windowSize": {"width": 1024,"height": 1024}
@@ -34,7 +34,19 @@
       "measurement": "global",
       "browser": {
         "name": "chrome",
-        "binary": "/usr/bin/google-chrome-unstable",
+        "binary": "/Users/masonfreed/chromium/src/out/Default/Chromium.app/Contents/MacOS/Chromium",
+        "addArguments": ["--enable-blink-features=DeclarativeShadowDOM"],
+        "headless": false,
+        "windowSize": {"width": 1024,"height": 1024}
+      }
+    },
+    {
+      "name": "MutationObserver",
+      "url": "test_script_3.html",
+      "measurement": "global",
+      "browser": {
+        "name": "chrome",
+        "binary": "/Users/masonfreed/chromium/src/out/Default/Chromium.app/Contents/MacOS/Chromium",
         "addArguments": ["--enable-blink-features=DeclarativeShadowDOM"],
         "headless": false,
         "windowSize": {"width": 1024,"height": 1024}

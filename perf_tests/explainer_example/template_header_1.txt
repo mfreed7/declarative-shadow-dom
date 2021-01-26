@@ -9,11 +9,13 @@
   window.addEventListener("load", ev => {
     const endTime = performance.now();
     const elapsedMs = endTime - startTime;
+    const firstHost = document.getElementById('suppress_layout').firstElementChild;
+    if (!firstHost.shadowRoot) {
+      log.textContent = `ERROR! Unable to locate shadow DOM`;
+      return;
+    }
     window.tachometerResult = elapsedMs;
     log.textContent = `Elapsed time: ${Math.round(elapsedMs)}ms`;
   });
 </script>
 
-<!-- ${num_copies} copies below... -->
-
-<div id=suppress_layout style="display:none; contain:strict;">
