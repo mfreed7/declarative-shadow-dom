@@ -32,7 +32,7 @@ Last Update: January 25, 2021
   - [Template-based declarative Shadow DOM](#template-based-declarative-shadow-dom)
   - [Baseline #1 - inline script-based shadow root attachment](#baseline-1---inline-script-based-shadow-root-attachment)
   - [Baseline #2 - single script-based shadow root attachment](#baseline-2---single-script-based-shadow-root-attachment)
-  - [Baseline #3 - single script-based shadow root attachment](#baseline-3---single-mutationobserver-based-polyfill-script)
+  - [Baseline #3 - single MutationObserver-based polyfill script](#baseline-3---single-mutationobserver-based-polyfill-script)
   - [Results](#results)
 - [Feature Detection and Polyfilling](#feature-detection-and-polyfilling)
 - [Example Custom Element](#example-custom-element)
