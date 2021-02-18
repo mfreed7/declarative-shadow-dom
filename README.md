@@ -3,7 +3,7 @@
 
 Author: Mason Freed
 
-Last Update: January 25, 2021
+Last Update: February 18, 2021
 
 **Note:** There is also a [blog post](https://web.dev/declarative-shadow-dom/) that describes this set of features.
 
@@ -34,6 +34,7 @@ Last Update: January 25, 2021
   - [Baseline #2 - single script-based shadow root attachment](#baseline-2---single-script-based-shadow-root-attachment)
   - [Baseline #3 - single MutationObserver-based polyfill script](#baseline-3---single-mutationobserver-based-polyfill-script)
   - [Results](#results)
+  - [Shadow DOM vs Light DOM Speed](#shadow-dom-vs-light-dom-speed)
 - [Feature Detection and Polyfilling](#feature-detection-and-polyfilling)
 - [Example Custom Element](#example-custom-element)
 - [Other Details & Questions](#other-details--questions)
@@ -287,6 +288,7 @@ host.setInnerHTML('<template shadowroot=open></template>', ...)
 
 2. What about CSS custom states and AOM IDL attributes? These can't yet be represented declaratively, so there is no way to serialize them in `getInnerHTML()`. This means that custom elements must re-set these values upon construction. I don't see a better solution than this.
 
+3. Could this declarative Shadow DOM syntax be used as a serialization format for [selections that cross Shadow DOM boundaries](https://github.com/WICG/webcomponents/issues/79)? From all observations, it appears so: given that DSD offers a general-purpose, pure-HTML serialization format for DOM that contains Shadow Roots, it would seem to be perfect for selection serialization. Of course, there are other thornier issues with selecting across Shadow DOM bounds, such as: 1) what happens when a selection starts or ends within a Shadow Root, 2) are there XSS concerns with being able to select and copy closed Shadow Root content, and 3) is there a cross-platform compatibility issue if some browsers support DSD while others don't? But however these questions are answered, if the resulting API would like to go ahead with serializing Shadow Roots, then DSD seems like the perfect format.
 
 # <a name="what-does-declarative-mean"></a> What does declarative Shadow DOM mean?
 
@@ -411,7 +413,7 @@ This approach might be perceived to be less confusing, since it avoids an HTML t
 As a very simple test, I naively implemented the proposed declarative shadow attachment algorithm, mostly as [written above](#behavior) with all operations occurring at the closing `</template>` tag. This has been built into Chrome as of version 82.0.4060.0, and must be tested with the `--enable-blink-features=DeclarativeShadowDOM` flag provided on the command line. I tested this locally on Chrome v82.0.4068.4 on Linux, on a fairly high-powered Lenovo P920 workstation. I used [tachometer](https://www.npmjs.com/package/tachometer) for all testing. I provided three different inputs, all loaded from local files. Each input consisted of 10,000 copies of the same code snippet, one of which used declarative Shadow DOM, and the other two as baselines. See below for descriptions of each type of snippet. Care was taken to eliminate forced style/layout, by wrapping the set of copies inside a `<div>` with `display:none` and `contain:strict`. All code can be found [here](perf_tests/explainer_example).
 
 
-## Template-based declarative Shadow DOM
+### Template-based declarative Shadow DOM
 
 The declarative Shadow DOM snippet uses the `<template shadowroot>` element as described in this document:
 
@@ -421,7 +423,7 @@ The declarative Shadow DOM snippet uses the `<template shadowroot>` element as d
 ```
 
 
-## Baseline #1 - inline script-based shadow root attachment
+### Baseline #1 - inline script-based shadow root attachment
 
 The first baseline snippet replicates a proposed alternative to native declarative Shadow DOM, which uses an inline script placed just after each `<template>` to attach the shadow root and move the template contents into the root. For completeness, this snippet also removes the `<template>` element and the inline `<script>` node, so that the resulting tree is identical to the declarative output. I found that the results did not change appreciably if both the `<template>` and `<script>` were left in the document instead.
 
@@ -442,7 +444,7 @@ This approach is the most straightforward replica of a declarative shadow dom so
 ```
 
 
-## Baseline #2 - single script-based shadow root attachment
+### Baseline #2 - single script-based shadow root attachment
 
 The second baseline snippet uses a single script at the end of the HTML that loops over all templates to attach the shadow roots and move the template contents into each root. This snippet also removes the `<template>` elements and the final `<script>` node.
 
@@ -468,7 +470,7 @@ This approach is optimized for speed - the entire page is parsed first, and then
 </script>
 ```
 
-## Baseline #3 - single MutationObserver-based polyfill script
+### Baseline #3 - single MutationObserver-based polyfill script
 
 The third baseline snippet uses a single synchronous polyfill script at the top of the HTML, which installs a `MutationObserver` that attaches shadow roots to any `<template shadowroot>` elements that it finds, and moves the template contents into each root. Similarly, this snippet removes the `<template>` element.
 
@@ -532,6 +534,11 @@ So the declarative snippet is **\~33% faster** than the single loop script, **~6
 <table border=2><tr><td><img src="images/script_3_trace.png" /></td></tr></table>
 
 In the inline-script-based snippet, not only does the inline script cause a significant amount (more than half) of time to be spent in the JS engine, but additionally, each inline script causes the parser to yield to run microtasks. Both of those significantly slow down rendering for the inline script example. The single loop script defers **all** script execution time until the end, so the parsing/loading is faster, but then more than half of the total time is spent at the end within the script loop, and there is significant layout shift. And the MutationObserver trace shows an even greater percentage of the total time spent executing the JS MutationObserver callbacks, after each parser yield point. In contrast to all of the above, the declarative snippet continuously runs parsing, including attaching shadow roots, until the parser yields for other reasons. There is no JS overhead to be seen.
+
+
+## Shadow DOM vs Light DOM Speed
+
+As a bit of an aside, I also put together a [microbenchmark in Chromium](https://source.chromium.org/chromium/chromium/src/+/master:third_party/blink/perf_tests/shadow_dom/shadow-dom-overhead.html) that compares the parsing and tree-attachment time for a "regular" light DOM node (e.g. a `<div>`) and a shadow host element (e.g. `<div><template shadowroot=open></template></div>`). In Chromium, that overhead is roughly 3X. I.e. it will take about three times as long to parse and append a shadow host than a regular light dom node. This is not totally unexpected, given that the shadow host carries quite a bit more "state" than a normal DOM node, including the shadow tree `DocumentFragment`, CSS Scoping information (a `TreeScope` in Chromium), etc. Note also that this overhead factor assumes the use of declarative Shadow DOM. The overhead of purely-imperative Shadow DOM would be even higher, because of the need to parse and execute the Javascript to call `attachShadow()`. It is also important to note that this does not mean pages using Shadow DOM will be three times slower - the total page load time consists of many factors, including network loading time, style and layout, etc., and typically a small fraction of the total nodes in a document are shadow hosts. Therefore, in practice, this overhead should be negligible. But we should strive to reduce it as much as possible.
 
 # Feature Detection and Polyfilling
 
