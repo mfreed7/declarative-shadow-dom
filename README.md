@@ -775,6 +775,6 @@ TAG review: [494](https://github.com/w3ctag/design-reviews/issues/494)
 
 Request for Mozilla Standards Position: [335](https://github.com/mozilla/standards-positions/issues/335)
 
-Request for WebKit position: [May 26](https://lists.webkit.org/pipermail/webkit-dev/2020-May/031218.html)
+Requests for WebKit position: [[May 26, 2020](https://lists.webkit.org/pipermail/webkit-dev/2020-May/031218.html)], [[Aug 10, 2020](https://lists.webkit.org/pipermail/webkit-dev/2020-August/031331.html)], [[Feb 18, 2021](https://lists.webkit.org/pipermail/webkit-dev/2021-February/031698.html)]
 
 Sample page showing declarative Shadow DOM: [JS Bin](https://jsbin.com/huquloz/edit?html,output)
