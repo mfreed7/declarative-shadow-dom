@@ -3,7 +3,7 @@
 
 Author: Mason Freed
 
-Last Update: February 18, 2021
+Last Update: February 25, 2021
 
 **Note:** There is also a [blog post](https://web.dev/declarative-shadow-dom/) that describes this set of features.
 
@@ -304,6 +304,45 @@ One element that is somewhat similar in these ways to the `#shadowroot` is a “
 
 <img src="images/html_vs_dom_2.png" height="200em">
 
+## Isn't it tedious to repeat the contents of each shadow root?
+
+Yes. But in **exactly the same way** that all other HTML must be "repeated". Because the proposed syntax for declarative Shadow DOM uses a `<template>` element, many people immediately think that the declarative Shadow DOM feature needs to include some sort of syntax to re-use "chunks" of shadow DOM content, rather than having to repeat the content of each repeated Shadow DOM. However, **this misses the point entirely**. First, there is an existing mechanism for repeating chunks of HTML: the ordinary (non-declarative Shadow DOM) `<template>` element:
+
+```html
+<template id=chunk>
+  <div>Duplicated content here
+    <template shadowroot=open>
+      Yes, declarative Shadow DOM can be included
+    </template>
+  </div>
+</template>
+<script>
+  // Add 100 copies of this chunk
+  for (var i = 0; i < 100; i++)
+    document.body.appendChild(chunk.content.cloneNode(true));
+</script>
+```
+
+And second, because the (ordinary) `<template>` element provides the Web Platform's "repeated HTML" API, there is no **other** HTML element that offers any type of "automatic repitition" mechanism. Consider the example of a "buy it now" button, implemented in light-dom:
+
+```html
+<button>
+  <img src="product.jpg"> Purchase widget for $123.45
+</button>
+```
+
+If an author needs many of these buttons on a single page, the above HTML snippet is **repeated verbatim** multiple times in the HTML source for the page. (Also note that while the structure might be the same, the content is likely slightly different: the product image and price will probably differ.) In the same **exact** way, a custom element button with declarative Shadow DOM would repeat a similar chunk of HTML:
+
+```html
+<buy-it-now-button>
+  <template shadowroot=open>
+    <img src="product.jpg"> Purchase widget for $123.45
+  </template>
+</buy-it-now-button>
+```
+
+In both cases, when hand-authoring in pure HTML, repeated content is **always** repeated in HTML. And when using a templating system, the `<template>` element can be used to stamp out duplicate sections of HTML. This works just as well with declarative Shadow DOM.
+
 
 # Alternatives Considered
 
@@ -361,34 +400,6 @@ The current proposal removes the `<template shadowroot>` node after performing t
 2. The memory consumption and overhead would be increased, due to the extra `<template shadowroot>` node left in the tree. Additionally, the slotting algorithm would also need to do extra work to slot in the leftover `<template shadowroot>` element into unnamed slots within the shadow root.
 
 The advantage of this approach would be that it avoids the abnormal behavior of a "self-removing" element. There are no current examples in the web platform of elements that remove themselves when parsed. (There is one historical example, `<isindex>`, but that has since been removed.) This advantage seems to be mostly about theoretical purity at this point. So unless there turns out to be negative web developer impact from introducing this new behavior, the above downsides would seem to outweigh this advantage. Also, arguably (see [this section](#what-does-declarative-mean)), the `<template shadowroot>` under this proposal is not “removed”, but rather transformed into its equivalent `#shadowroot` in the final DOM tree.
-
-## Instead of inline contents, use an idref to an existing template
-
-It might be argued that more compact HTML could be generated if declarative Shadow DOM was defined something like this:
-
-
-```html
-<template id=my_shadow_content>
-  <style>Component styles</style>
-  <slot></slot>
-</template>
-
-<custom-element shadowcontent=my_shadow_content>
-  <div>Light dom content</div>
-</custom-element>
-```
-
-
-This is similar to other efforts to [do something similar](https://github.com/whatwg/html/issues/4925#issuecomment-563434122) for ARIA “labelled by” attributes. This solution would also have the added benefit of being able to embed styles (the “Component Styles” in the example above) in one place, which then get shared to all custom elements that use the same template.
-
-However, a number of technical and syntactic questions arise:
-
-
-
-*   What if the `<template>` is defined after the `<custom-element>`, instead of before it, as written above? The shadow attachment would need to be deferred in that case until the template was found.
-*   What if the `<template>` resides outside the current document/shadow root? Should the idref be able to pierce shadow bounds? Upwards (to parent documents) and downwards (to contained shadow boundaries)?
-*   How often is this really helpful? With non-trivial custom elements, even if many instances of the same component are used on a page, the likelihood is small that they all contain the same data, and therefore the same default SSR state. Therefore, the benefit/savings might be small in practice.
-*   If the goal of this approach is to reduce the size of the delivered HTML resource for SSR applications, and if many of the same component (with identical data) really are being used on the same page, then the gzip compression algorithm will likely be able to almost-perfectly compress the duplicated component HTML chunks, so long as they aren’t separated too far within the HTML stream. So again, the benefit/savings might be small in practice.
 
 
 ## Syntax: Attributes directly on elements
