@@ -3,7 +3,7 @@
 
 Author: Mason Freed
 
-Last Update: February 25, 2021
+Last Update: February 21, 2022
 
 **Note:** There is also a [blog post](https://web.dev/declarative-shadow-dom/) that describes this set of features.
 
