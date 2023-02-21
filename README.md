@@ -21,13 +21,13 @@ Last Update: February 25, 2021
 - [Other Considerations](#other-considerations)
   - [Existing declarative shadow roots](#existing-declarative-shadow-roots)
   - [Ordinary templates containing declarative Shadow DOM](#ordinary-templates-containing-declarative-shadow-dom)
-  - [Root element is `<template shadowroot>`](#root-element-is-template-shadowroot)
+  - [Root element is `<template shadowrootmodemode>`](#root-element-is-template-shadowrootmode)
   - [Templates containing root-level declarative shadow roots](#templates-containing-root-level-declarative-shadow-roots)
   - [Other unanswered questions](#other-unanswered-questions)
 - [What does declarative Shadow DOM mean?](#what-does-declarative-shadow-dom-mean)
   - [Isn't it tedious to repeat the contents of each shadow root?](#isnt-it-tedious-to-repeat-the-contents-of-each-shadow-root)
 - [Alternatives Considered](#alternatives-considered)
-  - [Syntax: `<template shadowroot=open>` vs. `<shadowroot>`](#syntax-template-shadowrootopen-vs-shadowroot)
+  - [Syntax: `<template shadowrootmodemode=open>` vs. `<shadowroot>`](#syntax-template-shadowrootmodeopen-vs-shadowroot)
 - [Performance](#performance)
     - [Template-based declarative Shadow DOM](#template-based-declarative-shadow-dom)
     - [Baseline #1 - inline script-based shadow root attachment](#baseline-1---inline-script-based-shadow-root-attachment)
@@ -58,9 +58,9 @@ Server-Side Rendering (SSR) is an important requirement for many sites, which **
 
 For the reasons above, the current imperative-only API for Shadow DOM is not compatible with SSR. In order to support Shadow DOM in SSR environments, a declarative Shadow DOM API is required.
 
-Another related requirement for SSR solutions is that they support “isomorphic” code: the code running on the server (to build the SSR content) should be the same as the code running on the client. For Web Components, that boils down to the need for a DOM tree that can be serialized on the server and deserialized on the client back into the same tree, including #shadowroot nodes.
+Another related requirement for SSR solutions is that they support "isomorphic" code: the code running on the server (to build the SSR content) should be the same as the code running on the client. For Web Components, that boils down to the need for a DOM tree that can be serialized on the server and deserialized on the client back into the same tree, including #shadowroot nodes.
 
-In addition to the SSR motivations given above, another commonly-cited motivation is ergonomics. One of the primary “features” of Shadow DOM is style encapsulation. The CSS developers who are involved with styling components are typically more comfortable with HTML/CSS than they are with JS, and usually prefer to be able to achieve their styling objectives without resorting to JS. Some design systems even limit or prohibit the use of JS for styling. Offering CSS developers an ergonomic declarative way to utilize Shadow DOM without requiring any JS would therefore allow such developers to benefit from the style scoping feature of Shadow DOM.
+In addition to the SSR motivations given above, another commonly-cited motivation is ergonomics. One of the primary "features" of Shadow DOM is style encapsulation. The CSS developers who are involved with styling components are typically more comfortable with HTML/CSS than they are with JS, and usually prefer to be able to achieve their styling objectives without resorting to JS. Some design systems even limit or prohibit the use of JS for styling. Offering CSS developers an ergonomic declarative way to utilize Shadow DOM without requiring any JS would therefore allow such developers to benefit from the style scoping feature of Shadow DOM.
 
 Finally, a distinct but related problem that this proposal could solve is the current inability to completely serialize DOM that contains shadow roots. Calling `node.innerHTML` on a node that contains a `#shadowroot` does not return the `#shadowroot` or any of its children. With this proposal, it is possible to provide that missing feature.
 
@@ -72,11 +72,11 @@ Declarative Shadow DOM is an often-requested feature from developers. For exampl
 
 ## Syntax
 
-The proposed solution re-uses the existing `<template>` element with a new “shadowroot” attribute to declare the shadow content and trigger the attachment of a shadow root:
+The proposed solution re-uses the existing `<template>` element with a new "shadowrootmode" attribute to declare the shadow content and trigger the attachment of a shadow root:
 
 ```html
 <host-element>
-    <template shadowroot="open">
+    <template shadowrootmodemode="open">
         <style>shadow styles</style>
         <h2>Shadow Content</h2>
         <slot></slot>
@@ -93,21 +93,21 @@ With the above markup, the HTML parser will perform these steps:
 
 
 
-1. Upon encountering the opening `<template shadowroot="open">` tag, the parser switches to the [“in template”](https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-intemplate) insertion mode, just as with a normal `<template>` tag. All behaviors already associated with “in template” mode are followed at this point.
-2. Subsequent child content is parsed using the [existing rules](https://html.spec.whatwg.org/multipage/scripting.html#template-contents) for “in template” insertion mode: child content is parsed into a new DocumentFragment without a browsing context.
+1. Upon encountering the opening `<template shadowrootmode="open">` tag, the parser switches to the ["in template"](https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-intemplate) insertion mode, just as with a normal `<template>` tag. All behaviors already associated with "in template" mode are followed at this point.
+2. Subsequent child content is parsed using the [existing rules](https://html.spec.whatwg.org/multipage/scripting.html#template-contents) for "in template" insertion mode: child content is parsed into a new DocumentFragment without a browsing context.
 3. Upon parsing the closing `</template>` tag (or when the `<template>` node is popped off the [stack of open elements](https://html.spec.whatwg.org/#stack-of-open-elements) in the case of mis-nested tags):
-    1. The [existing procedure](https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-inhead) for the closing “template” tag is performed.
+    1. The [existing procedure](https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-inhead) for the closing "template" tag is performed.
     2. Let "the template element" equal the `<template>` element popped from the stack of open elements in the previous step.
-    3. Let “shadowroot” equal the value of an attribute in "the template element"'s start tag token with the name "shadowroot". (Note: the check is made for the attribute value in the **start tag token**, similar to how [HTML integration point](https://html.spec.whatwg.org/multipage/parsing.html#tree-construction) is defined. This is a parser-only feature.)
-    4. Let “delegates_focus" equal the value of an attribute in "the template element"'s start tag token with the name "shadowrootdelegatesfocus".
-    5. If “shadowroot” **does not** contain a valid value (“open” or “closed”), then these steps end here. This is not a declarative shadow root. (See [this discussion](#missingmode).)
+    3. Let "shadowrootmode" equal the value of an attribute in "the template element"'s start tag token with the name "shadowrootmode". (Note: the check is made for the attribute value in the **start tag token**, similar to how [HTML integration point](https://html.spec.whatwg.org/multipage/parsing.html#tree-construction) is defined. This is a parser-only feature.)
+    4. Let "delegates_focus" equal the value of an attribute in "the template element"'s start tag token with the name "shadowrootdelegatesfocus".
+    5. If "shadowrootmode" **does not** contain a valid value ("open" or "closed"), then these steps end here. This is not a declarative shadow root. (See [this discussion](#missingmode).)
     6. Let "shadowhost" equal the parent node of "the template element". (Note: the shadow root will be attached to the parent of the `<template>` node when the `</template>` closing tag is encountered. If script has moved that node, the shadow root will be attached to the new/current location.)
     7. If "shadowhost" is null, or is not a [valid shadow host element](https://dom.spec.whatwg.org/#dom-element-attachshadow), stop here - no shadow root will be attached in this case.
-    8. A shadow root is attached to "shadowhost", with a mode equal to “shadowroot” (open or closed), and delegatesFocus equal to "delegates_focus".
+    8. A shadow root is attached to "shadowhost", with a mode equal to "shadowrootmode" (open or closed), and delegatesFocus equal to "delegates_focus".
     9. The content of "the template element"'s DocumentFragment is **moved** into the newly-created shadow root.
     10. "The template element" (now empty) is [removed](https://dom.spec.whatwg.org/#dom-childnode-remove) from the document. (See [this discussion](#keepthenode).)
 
-One additional change is made to the specification for `HTMLTemplateElement`: the `.content` property will return `null` for the `<template shadowroot="open|closed">` element created during parsing. This will prevent scripts and `MutationObserver`s from gaining access to the internals of the shadow root while parsing is taking place. Since the `<template>` element is only present during parsing, and is removed in step 10 above, this simply prohibits access during parsing.
+One additional change is made to the specification for `HTMLTemplateElement`: the `.content` property will return `null` for the `<template shadowrootmode="open|closed">` element created during parsing. This will prevent scripts and `MutationObserver`s from gaining access to the internals of the shadow root while parsing is taking place. Since the `<template>` element is only present during parsing, and is removed in step 10 above, this simply prohibits access during parsing.
 
 With the behavior and example code above, the resulting DOM tree will be:
 
@@ -156,7 +156,7 @@ To provide maximum value, a DOM tree containing `#shadowroot`’s should also be
 const html = element.getInnerHTML({ includeShadowRoots: true });
 ```
 
-When called with `includeShadowRoots: true` on nodes that contain Shadow Hosts, the returned HTML will include a `<template shadowroot>` tag containing the shadowroot contents for each such node.
+When called with `includeShadowRoots: true` on nodes that contain Shadow Hosts, the returned HTML will include a `<template shadowrootmode>` tag containing the shadow root contents for each such node.
 
 As this is a new method, there are no compat problems to worry about. This method also allows future serialization options to be added, such as a method for serializing adoptedStylesheets found inside shadow roots.
 
@@ -168,15 +168,15 @@ To allow serialization of closed shadow roots, an additional option will be adde
 const html = element.getInnerHTML({ includeShadowRoots: true, closedRoots: [shadowRoot1,shadowRoot2,...] });
 ```
 
-Using this syntax, if any of the `closedRoots` shadow roots are encountered during serialization, they will be serialized regardless of whether they are open or closed. Closed shadow roots will be serialized using `<template shadowroot="closed">`.
+Using this syntax, if any of the `closedRoots` shadow roots are encountered during serialization, they will be serialized regardless of whether they are open or closed. Closed shadow roots will be serialized using `<template shadowrootmode="closed">`.
 
 
 ### Additional arguments for attachShadow
 
-Because the `attachShadow()` function has one other argument, `delegates_focus`, and potentially more in the future, there needs to be a way to specify these parameters in the declarative case. This is important not only for developer flexibility, but also so that the `getInnerHTML()` has a way to completely represent all possible shadow roots found in content. To achieve this, additional attributes will be added to the `<template shadowroot>` tag:
+Because the `attachShadow()` function has one other argument, `delegates_focus`, and potentially more in the future, there needs to be a way to specify these parameters in the declarative case. This is important not only for developer flexibility, but also so that the `getInnerHTML()` has a way to completely represent all possible shadow roots found in content. To achieve this, additional attributes will be added to the `<template shadowrootmode>` tag:
 
 ```html
-<template shadowroot="open" shadowrootdelegatesfocus>
+<template shadowrootmode="open" shadowrootdelegatesfocus>
 ```
 
 Here, the presence of the `shadowrootdelegatesfocus` boolean attribute will cause the shadow root to be attached as if this imperative call were used:
@@ -185,7 +185,7 @@ Here, the presence of the `shadowrootdelegatesfocus` boolean attribute will caus
 attachShadow({ mode = "open", delegatesFocus = true });
 ````
 
-Additional parameters added to attachShadow in the future could naturally be added as attributes to the declarative `<template shadowroot>` form.
+Additional parameters added to attachShadow in the future could naturally be added as attributes to the declarative `<template shadowrootmode>` form.
 
 
 # Other Considerations
@@ -194,7 +194,7 @@ With the behavior described above, a number of questions and corner cases arise:
 
 ## Existing declarative shadow roots
 
-Because existing components might exist that do not anticipate the existence of a declaratively-created shadowroot, these components might break if they assume `this.attachShadow()` will never throw and will always return an empty shadow root. To accomodate these components, the following changes will be made:
+Because existing components might exist that do not anticipate the existence of a declaratively-created shadow root, these components might break if they assume `this.attachShadow()` will never throw and will always return an empty shadow root. To accomodate these components, the following changes will be made:
 
 1. If `attachShadow()` is called on a node that already contains a **declaratively-created** shadow root, the existing contents of that shadow root will be removed, and the (now empty) shadow root will be returned by `attachShadow()`. Note that no behavior changes will be made for **imperatively**-created shadow roots. An existing imperatively-created shadow root will cause any subsequent call to `attachShadow()` to throw an exception, as it does today.
 
@@ -204,18 +204,18 @@ Because existing components might exist that do not anticipate the existence of 
 
 ```html
 <div>
-  <template shadowroot="open">
+  <template shadowrootmode="open">
     <h1>This h1 tag will be removed, but this shadow root will remain.</h1>
-  </template> 
-  <template shadowroot="closed">
+  </template>
+  <template shadowrootmode="closed">
     <h1>This is the final, *open* shadow root content.</h1>
-  </template> 
+  </template>
 </div>
 ```
 
 As noted, only the contents of the second shadow root will remain. And because the original (first) declarative shadow root is kept, and only its contents are removed, the final shadow root in this example will have "open" mode.
 
-The best practice will be to only include a single declarative `<template shadowroot>` element within each host element.
+The best practice will be to only include a single declarative `<template shadowrootmode>` element within each host element.
 
 
 ## Ordinary templates containing declarative Shadow DOM
@@ -225,7 +225,7 @@ Consider this code:
 ```html
 <template id=ordinary>
   <div>
-    <template shadowroot=open>
+    <template shadowrootmode=open>
       <slot></slot>
     </template>
   </div>
@@ -233,7 +233,7 @@ Consider this code:
 ```
 
 In this case, the "ordinary" template contains a div, which in turn contains a declarative shadow root. When this is parsed, the contents of the
-template will be parsed into a separate content document, and as the declarative `<template shadowroot>` node is encountered and parsed, a shadow
+template will be parsed into a separate content document, and as the declarative `<template shadowrootmode>` node is encountered and parsed, a shadow
 root will be attached to `<div>`. Therefore, this template content document will contain a declarative `#shadowroot`. When cloned, the expectation would be
 that the resulting cloned content should also have  declarative `#shadowroot`:
 
@@ -256,22 +256,22 @@ In order to achieve that, the WhatWG DOM spec for [cloning a node](https://dom.s
 In that algorithm, when a declarative shadow root is encountered on the source node, a shadow root will need to be attached to the copy, and
 the contents of the shadow root also cloned to the copy's shadow root.
 
-## Root element is `<template shadowroot>`
+## Root element is `<template shadowrootmode>`
 
 In this case:
 
  ```javascript
-host.setInnerHTML('<template shadowroot=open></template>', ...)
+host.setInnerHTML('<template shadowrootmode=open></template>', ...)
 ```
 
- it would be a bit odd/confusing if this attached a shadow root to the `<host>` element. To avoid confusion, this will just result in a warning, and a “normal” template inside `<host>`.
+ it would be a bit odd/confusing if this attached a shadow root to the `<host>` element. To avoid confusion, this will just result in a warning, and a "normal" template inside `<host>`.
 
 
 ## Templates containing root-level declarative shadow roots
 
  ```html
  <template id=my_template>
-     <template shadowroot=open></template>
+     <template shadowrootmode=open></template>
  </template>
  <div id=host></div>
  <script>
@@ -279,11 +279,11 @@ host.setInnerHTML('<template shadowroot=open></template>', ...)
  </script>
 ```
 
- In this case, similar to the prior example, it would be odd/confusing to attach a `#shadowroot` to `<div id=host>`. Here again, to avoid confusion, this will just issue a warning, and place a “normal” template inside `<host>`.
+ In this case, similar to the prior example, it would be odd/confusing to attach a `#shadowroot` to `<div id=host>`. Here again, to avoid confusion, this will just issue a warning, and place a "normal" template inside `<host>`.
 
 
 
-## Other unanswered questions 
+## Other unanswered questions
 1. How should `adoptedStylesheets` on `#shadowroot` nodes be handled? On the parser side, should there be a way to "point to" a stylesheet that gets automatically adopted within the declarative `#shadowroot`? On the serialization side, should the existing contents of `adoptedStylesheets` be automatically serialized into new `<style>` nodes? This could potentially be controlled by a new `convertAdoptedStylesheetsToInlineStyles` argument to `getInnerHTML()`.
 
 2. What about CSS custom states and AOM IDL attributes? These can't yet be represented declaratively, so there is no way to serialize them in `getInnerHTML()`. This means that custom elements must re-set these values upon construction. I don't see a better solution than this.
@@ -292,15 +292,15 @@ host.setInnerHTML('<template shadowroot=open></template>', ...)
 
 # <a name="what-does-declarative-mean"></a> What does declarative Shadow DOM mean?
 
-It is important to note that a `#shadowroot` within a DOM tree is very special. It is not a node within the normal DOM tree. It is not part of `node.children` or `node.parent` for any node in the tree. It is, in this way, very unlike most other “normal” nodes. As such, one should expect the declarative HTML representation of `#shadowroot` to also have some special properties, and to behave differently from other HTML tags.
+It is important to note that a `#shadowroot` within a DOM tree is very special. It is not a node within the normal DOM tree. It is not part of `node.children` or `node.parent` for any node in the tree. It is, in this way, very unlike most other "normal" nodes. As such, one should expect the declarative HTML representation of `#shadowroot` to also have some special properties, and to behave differently from other HTML tags.
 
-For example, one of the “normal” behaviors of HTML tags is that they don’t “disappear”. If “`<element>`” appears in the HTML, then the corresponding DOM tree contains an `<element>` node in the tree. However, for any direct declarative representation of `#shadowroot`, the “`<template shadowroot>`” tag will be present in the HTML, but there will be a `#shadowroot` ***in its place*** in the DOM. And to have a proper correspondence between HTML and DOM in this case, there should **not** be a `<template shadowroot>` element **also** in the DOM tree. If there were, repeatedly calling `host_element.outerHTML = host_element.outerHTML` would add duplicate `<template shadowroot>` elements to the DOM tree, and would result in errors due to the attempt to attach multiple shadow roots.
+For example, one of the "normal" behaviors of HTML tags is that they don’t "disappear". If "`<element>`" appears in the HTML, then the corresponding DOM tree contains an `<element>` node in the tree. However, for any direct declarative representation of `#shadowroot`, the "`<template shadowrootmode>`" tag will be present in the HTML, but there will be a `#shadowroot` ***in its place*** in the DOM. And to have a proper correspondence between HTML and DOM in this case, there should **not** be a `<template shadowrootmode>` element **also** in the DOM tree. If there were, repeatedly calling `host_element.outerHTML = host_element.outerHTML` would add duplicate `<template shadowrootmode>` elements to the DOM tree, and would result in errors due to the attempt to attach multiple shadow roots.
 
 <img src="images/html_vs_dom_1.png" height="250em">
 
-Note the symmetry in the above HTML/DOM comparison. The “`<template shadowroot>`” HTML on the left exactly corresponds to the `#shadowroot` in the DOM tree on the right.
+Note the symmetry in the above HTML/DOM comparison. The "`<template shadowrootmode>`" HTML on the left exactly corresponds to the `#shadowroot` in the DOM tree on the right.
 
-One element that is somewhat similar in these ways to the `#shadowroot` is a “normal” `<template>` element. While a “`<template>`" tag found in HTML parses into a `<template>` element in the DOM tree, any content within the `<template>` tag is parsed into a separate `#document-fragment`. That content does **not** become child nodes of the `<template>` element, even though the HTML markup appears to place it there as children:
+One element that is somewhat similar in these ways to the `#shadowroot` is a "normal" `<template>` element. While a "`<template>`" tag found in HTML parses into a `<template>` element in the DOM tree, any content within the `<template>` tag is parsed into a separate `#document-fragment`. That content does **not** become child nodes of the `<template>` element, even though the HTML markup appears to place it there as children:
 
 <img src="images/html_vs_dom_2.png" height="200em">
 
@@ -311,7 +311,7 @@ Yes. But in **exactly the same way** that all other HTML must be "repeated". Bec
 ```html
 <template id=chunk>
   <div>Duplicated content here
-    <template shadowroot=open>
+    <template shadowrootmode=open>
       Yes, declarative Shadow DOM can be included
     </template>
   </div>
@@ -335,7 +335,7 @@ If an author needs many of these buttons on a single page, the above HTML snippe
 
 ```html
 <buy-it-now-button>
-  <template shadowroot=open>
+  <template shadowrootmode=open>
     <img src="product.jpg"> Purchase widget for $123.45
   </template>
 </buy-it-now-button>
@@ -347,7 +347,7 @@ In both cases, when hand-authoring in pure HTML, repeated content is **always** 
 # Alternatives Considered
 
 
-## Syntax: `<template shadowroot=open>` vs. `<shadowroot>`
+## Syntax: `<template shadowrootmode=open>` vs. `<shadowroot>`
 
 It would be more ergonomic to define the declarative shadow root using a **new** `<shadowroot>` tag, rather than re-using the `<template> `tag with a new attribute. However, this approach has two major disadvantages:
 
@@ -370,12 +370,12 @@ It would be more ergonomic to define the declarative shadow root using a **new**
 
  In contrast, the chosen `<template>` approach is safe from both issues, since it will be parsed as an inert DocumentFragment, which simply doesn’t get converted into a shadow root (before this feature is implemented). This situation is much easier to feature-detect and code around.
 
-2. Implementation of a new `<shadowroot>` element, with most of the same parser semantics as `<template>`, is a significant undertaking. The implementation of `<template>` took many years, and suffered through many [security bugs](https://github.com/whatwg/dom/issues/510#issuecomment-372224104), before being stabilized in all renderers. And while the `<shadowroot>` element could likely “follow the pattern” set by the `<template>` implementation, it would still be a significant undertaking.
+2. Implementation of a new `<shadowroot>` element, with most of the same parser semantics as `<template>`, is a significant undertaking. The implementation of `<template>` took many years, and suffered through many [security bugs](https://github.com/whatwg/dom/issues/510#issuecomment-372224104), before being stabilized in all renderers. And while the `<shadowroot>` element could likely "follow the pattern" set by the `<template>` implementation, it would still be a significant undertaking.
 
 
-## <a name="missingmode"></a> Syntax: `<template shadowroot=open>` vs `<template shadowroot>`
+## <a name="missingmode"></a> Syntax: `<template shadowrootmode=open>` vs `<template shadowrootmode>`
 
-It would be more ergonomic to allow `shadowroot` to function as a boolean attribute, without needing to declare the shadow root open or closed. However, deferring to the previously-agreed-upon imperative behavior, which requires the mode to be defined (open vs closed), it seems better to stick with that behavior in the declarative version. Therefore, it is required that `shadowroot` be equal to either `"open"` or `"closed"` - anything else results in the element being parsed as a normal `<template>` element.
+It would be more ergonomic to allow `shadowrootmode` to function as a boolean attribute, without needing to declare the shadow root open or closed. However, deferring to the previously-agreed-upon imperative behavior, which requires the mode to be defined (open vs closed), it seems better to stick with that behavior in the declarative version. Therefore, it is required that `shadowrootmode` be equal to either `"open"` or `"closed"` - anything else results in the element being parsed as a normal `<template>` element.
 
 
 ## Timing: Attach the shadow on opening or closing `<template>` tag?
@@ -387,24 +387,24 @@ If the shadow root were attached upon encountering the opening `<template>` tag,
 1. This approach would likely be more compatible with streaming. When the shadow root is attached only on the **closing** `</template>` tag, nothing will be rendered until that point. If the page consists of a large, nested set of web components, then nothing will be rendered until the parser encounters the final closing tag of the outermost component. This problem isn’t as bad if the page is built as a light dom document containing many small web-components-based widgets.
 2. This solution would likely be slightly more performant. By directly parsing the `<template>` contents into the shadow root, there would be no need to move the template contents into the shadow root document.
 
-However, the major downside to this approach is that the implementation complexity would likely be significantly higher. The existing `<template>` code would need to be carefully modified to understand the differences between parsing into an inert `<template>` DocumentFragment and parsing into an active `#shadowroot`. Additionally, because the shadow root document would be “live” in this case, contained scripts could execute. This would require more care (and code) to deal with the corner cases that might arise in this situation. It is possible that these corner cases are the same ones encountered while implementing `<template>`, and therefore the `<template shadowroot>` implementation could “copy” the details from `<template>`. However, this would still require significantly more effort.
+However, the major downside to this approach is that the implementation complexity would likely be significantly higher. The existing `<template>` code would need to be carefully modified to understand the differences between parsing into an inert `<template>` DocumentFragment and parsing into an active `#shadowroot`. Additionally, because the shadow root document would be "live" in this case, contained scripts could execute. This would require more care (and code) to deal with the corner cases that might arise in this situation. It is possible that these corner cases are the same ones encountered while implementing `<template>`, and therefore the `<template shadowrootmode>` implementation could "copy" the details from `<template>`. However, this would still require significantly more effort.
 
 
-## <a name="keepthenode"></a> Keep the `<template shadowroot>` node around?
+## <a name="keepthenode"></a> Keep the `<template shadowrootmode>` node around?
 
-The current proposal removes the `<template shadowroot>` node after performing the `attachShadow()` and moving the content out of the `<template>` and into the `#shadowroot`. Alternatively, that `<template>` node could be left in the document as an empty inert node, similar to how existing `<template>` elements are left in the DOM tree, albeit without any children. The downsides of this approach are:
+The current proposal removes the `<template shadowrootmode>` node after performing the `attachShadow()` and moving the content out of the `<template>` and into the `#shadowroot`. Alternatively, that `<template>` node could be left in the document as an empty inert node, similar to how existing `<template>` elements are left in the DOM tree, albeit without any children. The downsides of this approach are:
 
 
 
 1. The ergonomics would be a bit worse, as there would be a leftover copy of the template that would be encountered upon traversing the tree. This would lead to confusion among both developers (who would see both DocumentFragments in the devtools Elements pane) and scripts (which would now iterate over both sets of trees). Additionally, the leftover `<template>` node would always get slotted into the unnamed `<slot>`.
-2. The memory consumption and overhead would be increased, due to the extra `<template shadowroot>` node left in the tree. Additionally, the slotting algorithm would also need to do extra work to slot in the leftover `<template shadowroot>` element into unnamed slots within the shadow root.
+2. The memory consumption and overhead would be increased, due to the extra `<template shadowrootmode>` node left in the tree. Additionally, the slotting algorithm would also need to do extra work to slot in the leftover `<template shadowrootmode>` element into unnamed slots within the shadow root.
 
-The advantage of this approach would be that it avoids the abnormal behavior of a "self-removing" element. There are no current examples in the web platform of elements that remove themselves when parsed. (There is one historical example, `<isindex>`, but that has since been removed.) This advantage seems to be mostly about theoretical purity at this point. So unless there turns out to be negative web developer impact from introducing this new behavior, the above downsides would seem to outweigh this advantage. Also, arguably (see [this section](#what-does-declarative-mean)), the `<template shadowroot>` under this proposal is not “removed”, but rather transformed into its equivalent `#shadowroot` in the final DOM tree.
+The advantage of this approach would be that it avoids the abnormal behavior of a "self-removing" element. There are no current examples in the web platform of elements that remove themselves when parsed. (There is one historical example, `<isindex>`, but that has since been removed.) This advantage seems to be mostly about theoretical purity at this point. So unless there turns out to be negative web developer impact from introducing this new behavior, the above downsides would seem to outweigh this advantage. Also, arguably (see [this section](#what-does-declarative-mean)), the `<template shadowrootmode>` under this proposal is not "removed", but rather transformed into its equivalent `#shadowroot` in the final DOM tree.
 
 
 ## Syntax: Attributes directly on elements
 
-Instead of a dedicated `<template shadowroot>` node that denotes the shadow root contents directly, an alternative would be to mark up the shadow host (any element that supports shadow root attachment) with a “shadow-host” attribute, and then mark up any direct child elements that should reside within the shadow root with another attribute, “shadow-child”:
+Instead of a dedicated `<template shadowrootmode>` node that denotes the shadow root contents directly, an alternative would be to mark up the shadow host (any element that supports shadow root attachment) with a "shadow-host" attribute, and then mark up any direct child elements that should reside within the shadow root with another attribute, "shadow-child":
 
 
 ```html
@@ -416,7 +416,7 @@ Instead of a dedicated `<template shadowroot>` node that denotes the shadow root
 ```
 
 
-This approach might be perceived to be less confusing, since it avoids an HTML tag that doesn’t end up in the final tree, like `<template shadowroot>`. One downside is that it doesn't support text or comment nodes within the shadow root, and _requires_ that the nodes are removed from their textual position. Also, this approach might end up actually being **more** confusing to developers than a single `<template shadowroot>` element, which clearly divides `#shadowroot` content from light DOM content.
+This approach might be perceived to be less confusing, since it avoids an HTML tag that doesn’t end up in the final tree, like `<template shadowrootmode>`. One downside is that it doesn't support text or comment nodes within the shadow root, and _requires_ that the nodes are removed from their textual position. Also, this approach might end up actually being **more** confusing to developers than a single `<template shadowrootmode>` element, which clearly divides `#shadowroot` content from light DOM content.
 
 
 # Performance
@@ -426,11 +426,11 @@ As a very simple test, I naively implemented the proposed declarative shadow att
 
 ### Template-based declarative Shadow DOM
 
-The declarative Shadow DOM snippet uses the `<template shadowroot>` element as described in this document:
+The declarative Shadow DOM snippet uses the `<template shadowrootmode>` element as described in this document:
 
 
 ```html
-<div><template shadowroot=open></template></div>
+<div><template shadowrootmode=open></template></div>
 ```
 
 
@@ -483,7 +483,7 @@ This approach is optimized for speed - the entire page is parsed first, and then
 
 ### Baseline #3 - single MutationObserver-based polyfill script
 
-The third baseline snippet uses a single synchronous polyfill script at the top of the HTML, which installs a `MutationObserver` that attaches shadow roots to any `<template shadowroot>` elements that it finds, and moves the template contents into each root. Similarly, this snippet removes the `<template>` element.
+The third baseline snippet uses a single synchronous polyfill script at the top of the HTML, which installs a `MutationObserver` that attaches shadow roots to any `<template shadowrootmode>` elements that it finds, and moves the template contents into each root. Similarly, this snippet removes the `<template>` element.
 
 This approach is an attempt to get closer to the streaming (and lower CLS) inline script solution, while attempting to mitigate the parsing and compilation time required for repeated inline scripts. The major disadvantages here are:
  - This MutationObserver must be placed on document.body, and must observe all node additions to the document. This significantly slows down tree building, given the JS overhead for each element.
@@ -549,7 +549,7 @@ In the inline-script-based snippet, not only does the inline script cause a sign
 
 ## Shadow DOM vs Light DOM Speed
 
-As a bit of an aside, I also put together a [microbenchmark in Chromium](https://source.chromium.org/chromium/chromium/src/+/master:third_party/blink/perf_tests/shadow_dom/shadow-dom-overhead.html) that compares the parsing and tree-attachment time for a "regular" light DOM node (e.g. a `<div>`) and a shadow host element (e.g. `<div><template shadowroot=open></template></div>`). In Chromium, that overhead is roughly 3X. I.e. it will take about three times as long to parse and append a shadow host than a regular light dom node. This is not totally unexpected, given that the shadow host carries quite a bit more "state" than a normal DOM node, including the shadow tree `DocumentFragment`, CSS Scoping information (a `TreeScope` in Chromium), etc. Note also that this overhead factor assumes the use of declarative Shadow DOM. The overhead of purely-imperative Shadow DOM would be even higher, because of the need to parse and execute the Javascript to call `attachShadow()`. It is also important to note that this does not mean pages using Shadow DOM will be three times slower - the total page load time consists of many factors, including network loading time, style and layout, etc., and typically a small fraction of the total nodes in a document are shadow hosts. Therefore, in practice, this overhead should be negligible. But we should strive to reduce it as much as possible.
+As a bit of an aside, I also put together a [microbenchmark in Chromium](https://source.chromium.org/chromium/chromium/src/+/master:third_party/blink/perf_tests/shadow_dom/shadow-dom-overhead.html) that compares the parsing and tree-attachment time for a "regular" light DOM node (e.g. a `<div>`) and a shadow host element (e.g. `<div><template shadowrootmode=open></template></div>`). In Chromium, that overhead is roughly 3X. I.e. it will take about three times as long to parse and append a shadow host than a regular light dom node. This is not totally unexpected, given that the shadow host carries quite a bit more "state" than a normal DOM node, including the shadow tree `DocumentFragment`, CSS Scoping information (a `TreeScope` in Chromium), etc. Note also that this overhead factor assumes the use of declarative Shadow DOM. The overhead of purely-imperative Shadow DOM would be even higher, because of the need to parse and execute the Javascript to call `attachShadow()`. It is also important to note that this does not mean pages using Shadow DOM will be three times slower - the total page load time consists of many factors, including network loading time, style and layout, etc., and typically a small fraction of the total nodes in a document are shadow hosts. Therefore, in practice, this overhead should be negligible. But we should strive to reduce it as much as possible.
 
 # Feature Detection and Polyfilling
 
@@ -558,15 +558,15 @@ To detect support for declarative Shadow DOM, something like this could be used:
 
 ```javascript
 function supportsDeclarativeShadowDOM() {
-  return HTMLTemplateElement.prototype.hasOwnProperty("shadowRoot");
+  return HTMLTemplateElement.prototype.hasOwnProperty("shadowrootmode");
 }
 ```
 
 Polyfilling is also relatively easy:
 
 ```javascript
-document.querySelectorAll('template[shadowroot]').forEach(template => {
-  const mode = template.getAttribute('shadowroot');
+document.querySelectorAll('template[shadowrootmode]').forEach(template => {
+  const mode = template.getAttribute('shadowrootmode');
   const shadowRoot = template.parentNode.attachShadow({ mode });
   shadowRoot.appendChild(template.content);
   template.remove();
@@ -579,7 +579,7 @@ To **make use of** declarative Shadow DOM, in the most typical use case of custo
 
 ```html
 <my-clock>
-    <template shadowroot=open>
+    <template shadowrootmode=open>
         <!-- This is the SSR content -->
         <style> Clock styles here </style>
         <div>
@@ -636,15 +636,15 @@ Note that in the above code, the only thing added to support SSR is the `if (!th
 
 *   Once the declarative shadow root has been parsed, it should behave exactly as if it were created using the existing imperative API. E.g. `host.shadowRoot` should return the shadow root, etc.
 *   Invalid situations result in a "normal" `<template>`:
-    *   If the “shadowroot” attribute is anything other than “open” or “closed”, then the element is parsed as a “normal” `<template>` element.
-    *   If the parent element of the `<template shadowroot>` element already has a shadow root attached, an error will be fired at Window, and the content will be parsed as if it is within a normal `<template>` element.
-    *   If the parent element of the `<template shadowroot>` element is not a [valid element](https://dom.spec.whatwg.org/#dom-element-attachshadow) to host a shadow root, then an error will be fired at Window, and the content will be parsed as if it is within a normal `<template>` element.
-*   It is legal to nest a `<template shadowroot>` inside a “normal” `<template>`. In this case, the shadow root attachment [behavior](#behavior) occurs only when the “normal” template contents are cloned into the document, and not while parsing the (non-declarative shadow root) `<template>`.
+    *   If the "shadowrootmode" attribute is anything other than "open" or "closed", then the element is parsed as a "normal" `<template>` element.
+    *   If the parent element of the `<template shadowrootmode>` element already has a shadow root attached, an error will be fired at Window, and the content will be parsed as if it is within a normal `<template>` element.
+    *   If the parent element of the `<template shadowrootmode>` element is not a [valid element](https://dom.spec.whatwg.org/#dom-element-attachshadow) to host a shadow root, then an error will be fired at Window, and the content will be parsed as if it is within a normal `<template>` element.
+*   It is legal to nest a `<template shadowrootmode>` inside a "normal" `<template>`. In this case, the shadow root attachment [behavior](#behavior) occurs only when the "normal" template contents are cloned into the document, and not while parsing the (non-declarative shadow root) `<template>`.
 *   The most straightforward way to share stylesheets across similar components would be to embed a `<link rel=stylesheet>` within the declarative shadow root:
 
  ```html
 <host-element>
-    <template shadowroot=open>
+    <template shadowrootmode=open>
         <link rel=stylesheet href="component_styles.css">
         <slot></slot>
     </template>
@@ -655,21 +655,21 @@ Note that in the above code, the only thing added to support SSR is the `if (!th
  With the snippet above, the browser will load and parse the component_styles.css stylesheet once, and will re-use it for each occurrence of this component. This will, of course, suffer from performance problems if there are many different component CSS stylesheet links on the page.
 
 *   Why not wait for, or link this to, [declarative custom elements](https://github.com/w3c/webcomponents/blob/gh-pages/proposals/Declarative-Custom-Elements-Strawman.md)? At first blush, it would seem that these two proposals go together. However, the primary motivating use case for declarative **Shadow DOM** is SSR and No-JS. Custom element definitions need javascript to function; therefore, this is a different use case/proposal and the two should not be tied together. Of course, they should be interoperable. Additionally, there are several use cases for declarative Shadow DOM that do not need custom elements at all: scoped styling, for example.
-*   Because `<template shadowroot>` is detected only upon parsing the opening tag, this declarative API cannot be used to create a shadowroot via JS. This is a **parser-only** API. E.g. doing this:
+*   Because `<template shadowrootmode>` is detected only upon parsing the opening tag, this declarative API cannot be used to create a shadow root via JS. This is a **parser-only** API. E.g. doing this:
 
  ```javascript
  // This doesn't work:
  const shadowroot = document.createElement('template');
- shadowroot.setAttribute("shadowroot", "open");
+ shadowroot.setAttribute("shadowrootmode", "open");
  ```
-  just results in a "normal" `<template>` being created. The entire [motivation](#motivation) for this feature is no-JS environments; therefore, to simplify the implementation, only **parser-generated** templates will create shadow roots, and adding the shadowroot attribute to a `<template>` after the fact will have no effect. To create a shadowroot using JS, the existing `element.attachShadow()` API should be used.
+  just results in a "normal" `<template>` being created. The entire [motivation](#motivation) for this feature is no-JS environments; therefore, to simplify the implementation, only **parser-generated** templates will create shadow roots, and adding the shadowrootmode attribute to a `<template>` after the fact will have no effect. To create a shadow root using JS, the existing `element.attachShadow()` API should be used.
 
 
 # <a name="tokyof2f"></a> Prior Discussion at Tokyo F2F
 
 The last (major) discussion of declarative Shadow DOM occurred at the 2018 Tokyo Web Components Face-to-Face meeting. The resolution from that meeting was **not** to proceed with a declarative Shadow DOM feature. Here is the summary of [that resolution](https://github.com/whatwg/dom/issues/510#issuecomment-370980398):
 
-> Tokyo F2F: The outcome was we will not move forward with this proposal. Overloading \<template\> tag with more functionality (like shadowroot attribute) may end up with lots of confusion for developers, especially given ongoing, not finalized progress with template instantiation. Specific new <shadowroot> tag would require new parser macro to wait for the end tag to attach shadow root and remove the node, that could introduce similar security problems during implementation as it did for template element.
+> Tokyo F2F: The outcome was we will not move forward with this proposal. Overloading \<template\> tag with more functionality (like the `shadowrootmode` attribute) may end up with lots of confusion for developers, especially given ongoing, not finalized progress with template instantiation. Specific new <shadowroot> tag would require new parser macro to wait for the end tag to attach shadow root and remove the node, that could introduce similar security problems during implementation as it did for template element.
 >
 > We need to make sure that before shadow root is attached its \<style\>s should not apply to the outer/host tree, scripts and custom elements should not have an access to the \<shadowroot\> ascendant node.
 >
@@ -682,15 +682,15 @@ The last (major) discussion of declarative Shadow DOM occurred at the 2018 Tokyo
 So the important points from the above summary resolution were:
 
 *   Building a new `<shadowroot>` element would require **significant parser work**, with significant security issues, similar to what was [encountered](https://github.com/whatwg/dom/issues/510#issuecomment-372224104) while implementing `<template>`.
-*   The stated use case of **“no-JS”** environments is **not a sufficient motivation** to implement this feature.
-*   Re-using the `<template>` element, with a shadowroot attribute, for declarative Shadow DOM would be **confusing** for developers.
+*   The stated use case of **"no-JS"** environments is **not a sufficient motivation** to implement this feature.
+*   Re-using the `<template>` element, with a `shadowrootmode` attribute, for declarative Shadow DOM would be **confusing** for developers.
 
 Taking each point individually:
 
 
-*   The significance of the parser changes that would be needed for a new `<shadowroot>` element are not being disputed here. This is the primary reason that this proposal opts for the `<template shadowroot>` approach, rather than proposing a new element type.
-*   Server side rendering, and it’s implied “no-JS” constraint, are not a passing phenomenon. This is now standard practice, and any solution (such as imperative-only shadow dom for style encapsulation) that does not support no-JS is verboten within many design systems. This is a very real constraint which is keeping multiple large enterprises from adopting Web Components. We need to solve this problem. There have also been suggestions that because people aren’t using the various “easy” polyfill solutions for this problem (such as inline `<script>`s to call `attachShadow()`), there must not be a real need for this feature. But that misses the point that the use case is “no-JS” environments - no javascript is allowed.
-*   The user-confusion concern around re-using the template element for declarative Shadow DOM is valid. The `<template>` element can already cause developer confusion. However, as with all new web technologies, there must be some learning and movement of the platform forward. Given the other constraints around any declarative solution, this `<template shadowroot>` solution seems to be the best path forward.
+*   The significance of the parser changes that would be needed for a new `<shadowroot>` element are not being disputed here. This is the primary reason that this proposal opts for the `<template shadowrootmode>` approach, rather than proposing a new element type.
+*   Server side rendering, and it’s implied "no-JS" constraint, are not a passing phenomenon. This is now standard practice, and any solution (such as imperative-only shadow dom for style encapsulation) that does not support no-JS is verboten within many design systems. This is a very real constraint which is keeping multiple large enterprises from adopting Web Components. We need to solve this problem. There have also been suggestions that because people aren’t using the various "easy" polyfill solutions for this problem (such as inline `<script>`s to call `attachShadow()`), there must not be a real need for this feature. But that misses the point that the use case is "no-JS" environments - no javascript is allowed.
+*   The user-confusion concern around re-using the template element for declarative Shadow DOM is valid. The `<template>` element can already cause developer confusion. However, as with all new web technologies, there must be some learning and movement of the platform forward. Given the other constraints around any declarative solution, this `<template shadowrootmode>` solution seems to be the best path forward.
 
 # Security and Privacy Considerations
 
@@ -708,7 +708,7 @@ Essentially, the problem here is that these sanitizers use the built-in parser t
 ```javascript
 const xss = `
     <div>
-      <template shadowroot=closed>
+      <template shadowrootmode=closed>
         <img src="nonexistent.png" onerror="alert('xss!')">
       </template>
     </div>
@@ -751,7 +751,7 @@ When page content is being parsed, e.g. for the main page or in an iframe, no su
   <!DOCTYPE html>
   <body>
     <div>
-      <template shadowroot=open>
+      <template shadowrootmode=open>
         This will be inside a shadow root
       </template>
     </div>
