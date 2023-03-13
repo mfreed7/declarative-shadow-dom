@@ -76,7 +76,7 @@ The proposed solution re-uses the existing `<template>` element with a new "shad
 
 ```html
 <host-element>
-    <template shadowrootmodemode="open">
+    <template shadowrootmode="open">
         <style>shadow styles</style>
         <h2>Shadow Content</h2>
         <slot></slot>
