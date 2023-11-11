@@ -558,7 +558,7 @@ To detect support for declarative Shadow DOM, something like this could be used:
 
 ```javascript
 function supportsDeclarativeShadowDOM() {
-  return HTMLTemplateElement.prototype.hasOwnProperty("shadowrootmode");
+  return HTMLTemplateElement.prototype.hasOwnProperty("shadowRootMode");
 }
 ```
 
@@ -570,7 +570,7 @@ document.querySelectorAll('template[shadowrootmode]').forEach(template => {
   const shadowRoot = template.parentNode.attachShadow({ mode });
   shadowRoot.appendChild(template.content);
   template.remove();
-}
+});
 ```
 
 # Example Custom Element
