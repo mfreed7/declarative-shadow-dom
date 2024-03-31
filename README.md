@@ -3,7 +3,17 @@
 
 Author: Mason Freed
 
-Last Update: February 21, 2022
+Last Update: March 31, 2024
+
+-----
+
+**NOTE: This explainer is out of date. This feature is now standardized in the WHATWG html spec:**
+
+https://html.spec.whatwg.org/multipage/scripting.html#attr-template-shadowrootmode
+
+**Some details of the standardized feature differ from this explainer.**
+
+-----
 
 **Note:** There is also a [blog post](https://web.dev/declarative-shadow-dom/) that describes this set of features.
 
