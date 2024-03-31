@@ -271,7 +271,7 @@ the contents of the shadow root also cloned to the copy's shadow root.
 In this case:
 
  ```javascript
-host.setInnerHTML('<template shadowrootmode=open></template>', ...)
+host.setHTML('<template shadowrootmode=open></template>', ...)
 ```
 
  it would be a bit odd/confusing if this attached a shadow root to the `<host>` element. To avoid confusion, this will just result in a warning, and a "normal" template inside `<host>`.
@@ -768,10 +768,10 @@ When page content is being parsed, e.g. for the main page or in an iframe, no su
   </body>
 ```
 
-A simple polyfill can be used to get "`setInnerHTML()`" type behavior:
+A simple polyfill can be used to get "`setHTML()`" type behavior:
 
 ```javascript
-Element.prototype.setInnerHTML = function(content) {
+Element.prototype.setHTML = function(content) {
   const fragment = (new DOMParser()).parseFromString(`<pre>${content}</pre>`,
         'text/html', {includeShadowRoots: true});
   (el instanceof HTMLTemplateElement ? el.content : el).replaceChildren(
